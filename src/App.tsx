@@ -2,13 +2,27 @@ import { useState } from 'react'
 import { Navbar, type NavLink } from '@/components'
 import { ProductCardDemo } from '@/pages/ProductCardDemo'
 import { UserProfileDemo } from '@/pages/UserProfileDemo'
+import { TaskDashboard } from '@/pages/TaskDashboard'
 
-type DemoPage = 'products' | 'profiles'
+type DemoPage = 'tasks' | 'products' | 'profiles'
 
 function App() {
-  const [page, setPage] = useState<DemoPage>('products')
+  const [page, setPage] = useState<DemoPage>('tasks')
+
+  if (page === 'tasks') {
+    return <TaskDashboard onNavigateAway={() => setPage('products')} />
+  }
 
   const navLinks: NavLink[] = [
+    {
+      label: 'Tasks',
+      href: '#tasks',
+      isActive: false,
+      onClick: (event) => {
+        event.preventDefault()
+        setPage('tasks')
+      },
+    },
     {
       label: 'Products',
       href: '#products',
@@ -25,15 +39,6 @@ function App() {
       onClick: (event) => {
         event.preventDefault()
         setPage('profiles')
-      },
-    },
-    {
-      label: 'Deals',
-      href: '#deals',
-      isActive: false,
-      onClick: (event) => {
-        event.preventDefault()
-        alert('Deals page coming soon!')
       },
     },
     {
@@ -59,9 +64,24 @@ function App() {
           if (query) alert(`Searching for "${query}"…`)
         }}
         userMenuItems={[
-          { label: 'My Profile', href: '#profile', icon: 'profile', onClick: () => setPage('profiles') },
-          { label: 'Settings', href: '#settings', icon: 'settings', onClick: () => alert('Opening settings…') },
-          { label: 'Sign out', href: '#signout', icon: 'logout', onClick: () => alert('Signing out…') },
+          {
+            label: 'Task Dashboard',
+            href: '#tasks',
+            icon: 'profile',
+            onClick: () => setPage('tasks'),
+          },
+          {
+            label: 'Settings',
+            href: '#settings',
+            icon: 'settings',
+            onClick: () => alert('Opening settings…'),
+          },
+          {
+            label: 'Sign out',
+            href: '#signout',
+            icon: 'logout',
+            onClick: () => alert('Signing out…'),
+          },
         ]}
       />
 

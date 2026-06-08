@@ -6,3 +6,11 @@ export { UserProfile } from './profile/UserProfile'
 export type { UserProfileProps, UserProfileStats } from './profile/UserProfile'
 export { ProductCard } from './ecommerce/ProductCard'
 export type { ProductCardProps } from './ecommerce/ProductCard'
+export {
+  DashboardSidebar,
+  DashboardHeader,
+  StatWidget,
+  TaskCard,
+} from './dashboard'
+export type { SidebarNavItem } from './dashboard'
+export { SettingsPanel } from './settings'
