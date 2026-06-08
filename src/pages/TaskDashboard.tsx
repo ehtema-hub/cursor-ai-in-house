@@ -41,9 +41,13 @@ function getStoredTheme(): ThemePreference {
 
 interface TaskDashboardProps {
   onNavigateAway?: () => void
+  onNavigateToAnalytics?: () => void
 }
 
-export function TaskDashboard({ onNavigateAway }: TaskDashboardProps) {
+export function TaskDashboard({
+  onNavigateAway,
+  onNavigateToAnalytics,
+}: TaskDashboardProps) {
   const [tasks, setTasks] = useState<Task[]>(sampleTasks)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredTheme)
@@ -103,7 +107,13 @@ export function TaskDashboard({ onNavigateAway }: TaskDashboardProps) {
         items={navItems}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        onNavigate={setActiveNav}
+        onNavigate={(id) => {
+          if (id === 'analytics' && onNavigateToAnalytics) {
+            onNavigateToAnalytics()
+            return
+          }
+          setActiveNav(id)
+        }}
         sidebarId={sidebarId}
         onNavigateAway={onNavigateAway}
       />

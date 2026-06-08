@@ -14,3 +14,11 @@ export {
 } from './dashboard'
 export type { SidebarNavItem } from './dashboard'
 export { SettingsPanel } from './settings'
+export {
+  KPICard,
+  ChartPlaceholder,
+  AnalyticsFilters,
+  DataTable,
+  defaultFilters,
+} from './analytics'
+export type { FilterState } from './analytics'
