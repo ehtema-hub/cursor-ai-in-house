@@ -3,14 +3,28 @@ import { Navbar, type NavLink } from '@/components'
 import { ProductCardDemo } from '@/pages/ProductCardDemo'
 import { UserProfileDemo } from '@/pages/UserProfileDemo'
 import { TaskDashboard } from '@/pages/TaskDashboard'
+import { AnalyticsDashboard } from '@/pages/AnalyticsDashboard'
 
-type DemoPage = 'tasks' | 'products' | 'profiles'
+type DemoPage = 'tasks' | 'analytics' | 'products' | 'profiles'
 
 function App() {
   const [page, setPage] = useState<DemoPage>('tasks')
 
   if (page === 'tasks') {
-    return <TaskDashboard onNavigateAway={() => setPage('products')} />
+    return (
+      <TaskDashboard
+        onNavigateAway={() => setPage('products')}
+        onNavigateToAnalytics={() => setPage('analytics')}
+      />
+    )
+  }
+
+  if (page === 'analytics') {
+    return (
+      <AnalyticsDashboard
+        onNavigateAway={() => setPage('tasks')}
+      />
+    )
   }
 
   const navLinks: NavLink[] = [
@@ -21,6 +35,15 @@ function App() {
       onClick: (event) => {
         event.preventDefault()
         setPage('tasks')
+      },
+    },
+    {
+      label: 'Analytics',
+      href: '#analytics',
+      isActive: false,
+      onClick: (event) => {
+        event.preventDefault()
+        setPage('analytics')
       },
     },
     {
@@ -39,15 +62,6 @@ function App() {
       onClick: (event) => {
         event.preventDefault()
         setPage('profiles')
-      },
-    },
-    {
-      label: 'About',
-      href: '#about',
-      isActive: false,
-      onClick: (event) => {
-        event.preventDefault()
-        alert('About page coming soon!')
       },
     },
   ]
@@ -71,10 +85,10 @@ function App() {
             onClick: () => setPage('tasks'),
           },
           {
-            label: 'Settings',
-            href: '#settings',
+            label: 'Analytics',
+            href: '#analytics',
             icon: 'settings',
-            onClick: () => alert('Opening settings…'),
+            onClick: () => setPage('analytics'),
           },
           {
             label: 'Sign out',
