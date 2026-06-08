@@ -8,7 +8,13 @@ import {
   defaultFilters,
   type FilterState,
 } from '@/components/analytics'
-import { analyticsRecords, kpiMetrics } from '@/data/analyticsData'
+import {
+  analyticsRecords,
+  kpiMetrics,
+  revenueTrendData,
+  trafficSourcesData,
+  userGrowthData,
+} from '@/data/analyticsData'
 
 function getInitialDarkMode(): boolean {
   const stored = localStorage.getItem('theme')
@@ -117,18 +123,21 @@ export function AnalyticsDashboard({ onNavigateAway }: AnalyticsDashboardProps) 
               description="Monthly revenue over the last 12 months"
               type="line"
               isLoading={isLoading}
+              data={revenueTrendData}
             />
             <ChartPlaceholder
               title="User Growth"
               description="New and returning users per week"
               type="bar"
               isLoading={isLoading}
+              data={userGrowthData}
             />
             <ChartPlaceholder
               title="Traffic Sources"
               description="Breakdown by channel"
               type="pie"
               isLoading={isLoading}
+              data={trafficSourcesData}
               className="lg:col-span-2"
             />
           </div>

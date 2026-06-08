@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:chromium": "playwright test --project=chromium"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
@@ -15,7 +18,9 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^9.25.0",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.1.8",
     "@types/node": "^25.9.1",
     "@types/react": "^19.1.2",

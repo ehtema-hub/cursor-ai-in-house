@@ -4,6 +4,7 @@ import type { Task, TaskPriority, TaskStatus } from '@/data/sampleTasks'
 interface TaskCardProps {
   task: Task
   onStatusChange?: (id: string, status: TaskStatus) => void
+  onDelete?: (id: string) => void
 }
 
 const STATUS_STYLES: Record<TaskStatus, string> = {
@@ -32,13 +33,14 @@ function formatDueDate(dateString: string): string {
   })
 }
 
-export function TaskCard({ task, onStatusChange }: TaskCardProps) {
+export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
   const isOverdue =
     task.status !== 'done' && new Date(task.dueDate) < new Date()
 
   return (
     <article
       aria-labelledby={`task-${task.id}-title`}
+      data-testid={`task-card-${task.id}`}
       className={`group rounded-xl border border-gray-200 border-l-4 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800 ${PRIORITY_STYLES[task.priority]}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -108,9 +110,21 @@ export function TaskCard({ task, onStatusChange }: TaskCardProps) {
             {isOverdue && <span className="sr-only">, overdue</span>}
           </time>
 
+          {onDelete && (
+            <button
+              type="button"
+              data-testid={`delete-task-${task.id}`}
+              aria-label={`Delete ${task.title}`}
+              onClick={() => onDelete(task.id)}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+            >
+              Delete
+            </button>
+          )}
           {onStatusChange && task.status !== 'done' && (
             <button
               type="button"
+              data-testid={`status-task-${task.id}`}
               onClick={() =>
                 onStatusChange(
                   task.id,

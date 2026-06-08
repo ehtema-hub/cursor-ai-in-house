@@ -9,6 +9,24 @@ npm install
 npm run dev
 ```
 
+# Tests
+### Install browsers (first time only)
+```bash
+npx playwright install
+```
+### Run all E2E tests (all browsers)
+```bash
+npm run test:e2e
+```
+### Chromium only (fastest)
+```bash
+npm run test:e2e:chromium
+```
+### Interactive UI mode
+```bash
+npm run test:e2e:ui
+```
+
 ## Project Structure
 
 ```

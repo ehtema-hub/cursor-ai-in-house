@@ -1,18 +1,39 @@
 import { useState } from 'react'
+import { useAuth } from '@/context/AuthContext'
 import { Navbar, type NavLink } from '@/components'
 import { ProductCardDemo } from '@/pages/ProductCardDemo'
 import { UserProfileDemo } from '@/pages/UserProfileDemo'
 import { TaskDashboard } from '@/pages/TaskDashboard'
 import { AnalyticsDashboard } from '@/pages/AnalyticsDashboard'
+import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
 
 type DemoPage = 'tasks' | 'analytics' | 'products' | 'profiles'
+type AuthView = 'login' | 'register'
 
 function App() {
+  const { user, logout: authLogout } = useAuth()
   const [page, setPage] = useState<DemoPage>('tasks')
+  const [authView, setAuthView] = useState<AuthView>('login')
+
+  const handleLogout = () => {
+    authLogout()
+    setAuthView('login')
+  }
 
   if (page === 'tasks') {
+    if (!user) {
+      return authView === 'login' ? (
+        <LoginPage onSwitchToRegister={() => setAuthView('register')} />
+      ) : (
+        <RegisterPage onSwitchToLogin={() => setAuthView('login')} />
+      )
+    }
+
     return (
       <TaskDashboard
+        user={user}
+        onLogout={handleLogout}
         onNavigateAway={() => setPage('products')}
         onNavigateToAnalytics={() => setPage('analytics')}
       />
@@ -20,11 +41,7 @@ function App() {
   }
 
   if (page === 'analytics') {
-    return (
-      <AnalyticsDashboard
-        onNavigateAway={() => setPage('tasks')}
-      />
-    )
+    return <AnalyticsDashboard onNavigateAway={() => setPage('tasks')} />
   }
 
   const navLinks: NavLink[] = [
