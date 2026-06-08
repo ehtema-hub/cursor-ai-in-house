@@ -17,6 +17,7 @@ interface DashboardHeaderProps {
   isDarkMode: boolean
   onToggleDarkMode: () => void
   onOpenSidebar: () => void
+  onLogout?: () => void
 }
 
 export function DashboardHeader({
@@ -26,6 +27,7 @@ export function DashboardHeader({
   isDarkMode,
   onToggleDarkMode,
   onOpenSidebar,
+  onLogout,
 }: DashboardHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -59,6 +61,7 @@ export function DashboardHeader({
           type="button"
           onClick={onOpenSidebar}
           aria-label="Open navigation menu"
+          data-testid="open-sidebar"
           className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 lg:hidden dark:text-gray-400 dark:hover:bg-gray-800"
         >
           <Menu aria-hidden="true" className="h-5 w-5" />
@@ -103,6 +106,7 @@ export function DashboardHeader({
             aria-haspopup="menu"
             aria-controls={menuId}
             aria-label={`${userName} account menu`}
+            data-testid="user-menu-button"
             className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:hover:bg-gray-800"
           >
             <img
@@ -127,9 +131,7 @@ export function DashboardHeader({
             role="menu"
             aria-labelledby={menuButtonId}
             className={`absolute right-0 mt-2 w-56 origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg transition-all duration-200 dark:border-gray-700 dark:bg-gray-800 ${
-              isMenuOpen
-                ? 'pointer-events-auto scale-100 opacity-100'
-                : 'pointer-events-none scale-95 opacity-0'
+              isMenuOpen ? 'scale-100 opacity-100' : 'hidden'
             }`}
           >
             <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
@@ -142,15 +144,19 @@ export function DashboardHeader({
             </div>
             <ul className="py-1" role="none">
               {[
-                { label: 'Profile', icon: User },
-                { label: 'Settings', icon: Settings },
-                { label: 'Sign out', icon: LogOut },
-              ].map(({ label, icon: Icon }) => (
+                { label: 'Profile', icon: User, testId: 'menu-profile' },
+                { label: 'Settings', icon: Settings, testId: 'menu-settings' },
+                { label: 'Sign out', icon: LogOut, testId: 'logout-button' },
+              ].map(({ label, icon: Icon, testId }) => (
                 <li key={label} role="none">
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => setIsMenuOpen(false)}
+                    data-testid={testId}
+                    onClick={() => {
+                      if (label === 'Sign out') onLogout?.()
+                      setIsMenuOpen(false)
+                    }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     <Icon aria-hidden="true" className="h-4 w-4" />

@@ -8,7 +8,7 @@ interface StatWidgetProps {
 const TREND_CONFIG = {
   up: {
     icon: TrendingUp,
-    className: 'text-emerald-600 dark:text-emerald-400',
+    className: 'text-emerald-700 dark:text-emerald-400',
     label: 'increase',
   },
   down: {

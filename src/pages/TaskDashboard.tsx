@@ -7,7 +7,9 @@ import {
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { StatWidget } from '@/components/dashboard/StatWidget'
 import { TaskCard } from '@/components/dashboard/TaskCard'
+import { TaskCreateModal } from '@/components/dashboard/TaskCreateModal'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
+import type { User } from '@/lib/auth'
 import type { ThemePreference } from '@/types/settings'
 import {
   sampleTasks,
@@ -40,15 +42,20 @@ function getStoredTheme(): ThemePreference {
 }
 
 interface TaskDashboardProps {
+  user: User
+  onLogout: () => void
   onNavigateAway?: () => void
   onNavigateToAnalytics?: () => void
 }
 
 export function TaskDashboard({
+  user,
+  onLogout,
   onNavigateAway,
   onNavigateToAnalytics,
 }: TaskDashboardProps) {
   const [tasks, setTasks] = useState<Task[]>(sampleTasks)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredTheme)
   const isDarkMode = resolveDarkMode(themePreference)
@@ -82,6 +89,22 @@ export function TaskDashboard({
     )
   }
 
+  const handleDeleteTask = (id: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== id))
+  }
+
+  const handleCreateTask = (
+    taskData: Omit<Task, 'id' | 'assignee' | 'assigneeAvatar'>,
+  ) => {
+    const newTask: Task = {
+      ...taskData,
+      id: `task-${Date.now()}`,
+      assignee: user.name,
+      assigneeAvatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`,
+    }
+    setTasks((prev) => [newTask, ...prev])
+  }
+
   const filteredTasks =
     statusFilter === 'all'
       ? tasks
@@ -102,7 +125,7 @@ export function TaskDashboard({
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950" data-testid="task-dashboard">
       <DashboardSidebar
         items={navItems}
         isOpen={isSidebarOpen}
@@ -121,11 +144,12 @@ export function TaskDashboard({
       <div className="flex min-w-0 flex-1 flex-col">
         <DashboardHeader
           title={pageTitles[activeNav] ?? 'Dashboard'}
-          userName="Jordan Lee"
-          userAvatarUrl="https://api.dicebear.com/9.x/avataaars/svg?seed=Jordan"
+          userName={user.name}
+          userAvatarUrl={`https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`}
           isDarkMode={isDarkMode}
           onToggleDarkMode={handleToggleDarkMode}
           onOpenSidebar={() => setIsSidebarOpen(true)}
+          onLogout={onLogout}
         />
 
         <main
@@ -165,7 +189,10 @@ export function TaskDashboard({
                     >
                       Recent Tasks
                     </h2>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <p
+                      className="mt-1 text-sm text-gray-500 dark:text-gray-400"
+                      data-testid="task-count"
+                    >
                       {filteredTasks.length} task
                       {filteredTasks.length !== 1 ? 's' : ''} shown
                     </p>
@@ -182,6 +209,7 @@ export function TaskDashboard({
                       </label>
                       <select
                         id="status-filter"
+                        data-testid="status-filter"
                         value={statusFilter}
                         onChange={(event) =>
                           setStatusFilter(
@@ -199,6 +227,8 @@ export function TaskDashboard({
 
                     <button
                       type="button"
+                      data-testid="new-task-button"
+                      onClick={() => setIsCreateModalOpen(true)}
                       className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
                     >
                       <Plus aria-hidden="true" className="h-4 w-4" />
@@ -217,11 +247,15 @@ export function TaskDashboard({
                         <TaskCard
                           task={task}
                           onStatusChange={handleStatusChange}
+                          onDelete={handleDeleteTask}
                         />
                       </div>
                     ))
                   ) : (
-                    <p className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400">
+                    <p
+                      className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400"
+                      data-testid="empty-tasks-message"
+                    >
                       No tasks match the selected filter.
                     </p>
                   )}
@@ -231,6 +265,13 @@ export function TaskDashboard({
           )}
         </main>
       </div>
+
+      <TaskCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={handleCreateTask}
+        assigneeName={user.name}
+      />
     </div>
   )
 }
