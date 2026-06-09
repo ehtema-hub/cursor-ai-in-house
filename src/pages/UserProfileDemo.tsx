@@ -22,13 +22,13 @@ export function UserProfileDemo() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <div className="mb-10 text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
             Component Showcase
           </h2>
-          <p className="mt-3 text-lg text-gray-600">
+          <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">
             Sample profiles demonstrating layout, stats formatting, and action
             button states.
           </p>
@@ -38,7 +38,7 @@ export function UserProfileDemo() {
           <section aria-labelledby="own-profile-heading">
             <h3
               id="own-profile-heading"
-              className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500"
+              className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
             >
               Your profile — Edit Profile action
             </h3>
@@ -63,7 +63,7 @@ export function UserProfileDemo() {
           <section aria-labelledby="following-heading">
             <h3
               id="following-heading"
-              className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500"
+              className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
             >
               Already following — Following + Message actions
             </h3>
@@ -95,7 +95,7 @@ export function UserProfileDemo() {
           <section aria-labelledby="discover-heading">
             <h3
               id="discover-heading"
-              className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500"
+              className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
             >
               Discover — Follow + Message actions
             </h3>

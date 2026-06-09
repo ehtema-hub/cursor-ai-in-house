@@ -41,11 +41,11 @@ interface StatItemProps {
 function StatItem({ label, value, id }: StatItemProps) {
   return (
     <div className="flex flex-col items-center sm:items-start">
-      <dt id={id} className="text-xl font-bold text-gray-900 sm:text-2xl">
+      <dt id={id} className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
         <span aria-hidden="true">{formatCount(value)}</span>
         <span className="sr-only">{value.toLocaleString()}</span>
       </dt>
-      <dd className="text-sm text-gray-500">{label}</dd>
+      <dd className="text-sm text-gray-500 dark:text-gray-400">{label}</dd>
     </div>
   )
 }
@@ -79,14 +79,14 @@ export function UserProfile({
   return (
     <section
       aria-labelledby={`${profileId}-name`}
-      className={`rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 ${className}`}
+      className={`rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8 ${className}`}
     >
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
         <div className="flex shrink-0 justify-center sm:justify-start">
           <img
             src={avatarUrl}
             alt={`${name}'s profile picture`}
-            className="h-24 w-24 rounded-full object-cover ring-4 ring-white sm:h-32 sm:w-32"
+            className="h-24 w-24 rounded-full object-cover ring-4 ring-white dark:ring-gray-700 sm:h-32 sm:w-32"
             width={128}
             height={128}
           />
@@ -96,19 +96,19 @@ export function UserProfile({
           <header className="mb-4">
             <h2
               id={`${profileId}-name`}
-              className="truncate text-2xl font-bold text-gray-900 sm:text-3xl"
+              className="truncate text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl"
             >
               {name}
             </h2>
             {username && (
-              <p className="mt-1 truncate text-gray-500">@{username}</p>
+              <p className="mt-1 truncate text-gray-500 dark:text-gray-400">@{username}</p>
             )}
           </header>
 
           {bio && (
             <p
               id={bioId}
-              className="mb-5 text-base leading-relaxed text-gray-700"
+              className="mb-5 text-base leading-relaxed text-gray-700 dark:text-gray-300"
             >
               {bio}
             </p>
@@ -117,7 +117,7 @@ export function UserProfile({
           <dl
             id={statsId}
             aria-label="Profile statistics"
-            className="mb-6 grid grid-cols-3 gap-4 rounded-xl bg-gray-50 px-4 py-4 sm:inline-grid sm:gap-8 sm:px-6"
+            className="mb-6 grid grid-cols-3 gap-4 rounded-xl bg-gray-50 px-4 py-4 dark:bg-gray-900/50 sm:inline-grid sm:gap-8 sm:px-6"
           >
             <StatItem
               id={`${statsId}-posts`}
@@ -144,9 +144,10 @@ export function UserProfile({
             {isOwnProfile ? (
               <Button
                 type="button"
+                variant="secondary"
                 onClick={onEditProfile}
                 aria-label="Edit your profile"
-                className="w-full border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 Edit Profile
               </Button>
@@ -154,22 +155,20 @@ export function UserProfile({
               <>
                 <Button
                   type="button"
+                  variant={isFollowing ? 'secondary' : 'primary'}
                   onClick={handleFollowClick}
                   aria-label={isFollowing ? `Unfollow ${name}` : `Follow ${name}`}
                   aria-pressed={isFollowing}
-                  className={`w-full sm:w-auto ${
-                    isFollowing
-                      ? 'border border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                      : ''
-                  }`}
+                  className="w-full sm:w-auto"
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </Button>
                 <Button
                   type="button"
+                  variant="secondary"
                   onClick={onMessage}
                   aria-label={`Send a message to ${name}`}
-                  className="w-full border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 sm:w-auto"
+                  className="w-full sm:w-auto"
                 >
                   Message
                 </Button>

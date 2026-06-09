@@ -14,7 +14,10 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Moon,
+  Sun,
 } from 'lucide-react'
+import { useTheme } from '@/context/ThemeContext'
 
 export interface NavLink {
   label: string
@@ -82,10 +85,10 @@ function NavLinks({ links, layout, onNavigate }: NavLinksProps) {
             }}
             data-testid={link.label === 'Products' ? 'nav-link-products' : undefined} // Add data-testid directly
             aria-current={link.isActive ? 'page' : undefined}
-            className={`group relative rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+            className={`group relative rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
               link.isActive
-                ? 'font-semibold text-indigo-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'font-semibold text-indigo-600 dark:text-indigo-400'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             } ${isMobile ? 'block w-full px-4 py-3 text-base' : ''}`}
           >
             {link.label}
@@ -147,7 +150,7 @@ function SearchBar({ placeholder, onSearch, id, className = '' }: SearchBarProps
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 ease-in-out focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 ease-in-out focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500 dark:focus:bg-gray-900"
       />
     </form>
   )
@@ -184,7 +187,7 @@ function UserDropdown({
         aria-haspopup="menu"
         aria-controls={menuId}
         aria-label={`${userName} account menu`}
-        className="flex items-center gap-2 rounded-full p-1 transition-all duration-300 ease-in-out hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        className="flex items-center gap-2 rounded-full p-1 transition-all duration-300 ease-in-out hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-900"
       >
         <img
           src={avatarUrl}
@@ -194,7 +197,7 @@ function UserDropdown({
           width={36}
           height={36}
         />
-        <span className="hidden text-sm font-medium text-gray-700 md:inline">
+        <span className="hidden text-sm font-medium text-gray-700 md:inline dark:text-gray-300">
           {userName}
         </span>
         <ChevronDown
@@ -207,15 +210,15 @@ function UserDropdown({
         id={menuId}
         role="menu"
         aria-labelledby={buttonId}
-        className={`absolute right-0 z-50 mt-2 w-56 origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg transition-all duration-300 ease-in-out ${
+        className={`absolute right-0 z-50 mt-2 w-56 origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg transition-all duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-800 ${
           isOpen
             ? 'pointer-events-auto scale-100 opacity-100'
             : 'pointer-events-none scale-95 opacity-0'
         }`}
       >
-        <div className="border-b border-gray-100 px-4 py-3">
-          <p className="text-sm font-semibold text-gray-900">{userName}</p>
-          <p className="text-xs text-gray-500">Account settings</p>
+        <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">{userName}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Account settings</p>
         </div>
         <ul className="py-1" role="none">
           {menuItems.map((item) => {
@@ -232,7 +235,7 @@ function UserDropdown({
                     }
                     onClose()
                   }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition-colors duration-300 ease-in-out hover:bg-gray-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition-colors duration-300 ease-in-out hover:bg-gray-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
                 >
                   {Icon && <Icon aria-hidden="true" className="h-4 w-4" />}
                   {item.label}
@@ -282,17 +285,17 @@ function MobileDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Mobile navigation menu"
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-sm flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-sm flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 lg:hidden ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4">
-          <span className="text-lg font-semibold text-gray-900">Menu</span>
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 dark:border-gray-700">
+          <span className="text-lg font-semibold text-gray-900 dark:text-white">Menu</span>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="rounded-lg p-2 text-gray-600 transition-colors duration-300 ease-in-out hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="rounded-lg p-2 text-gray-600 transition-colors duration-300 ease-in-out hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-gray-400 dark:hover:bg-gray-800"
           >
             <X aria-hidden="true" className="h-5 w-5" />
           </button>
@@ -326,6 +329,7 @@ export function Navbar({
   onSearch,
   className = '',
 }: NavbarProps) {
+  const { isDarkMode, toggleDarkMode } = useTheme()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -388,8 +392,8 @@ export function Navbar({
         data-testid="main-navbar"
         className={`border-b backdrop-blur-md transition-all duration-300 ease-in-out ${
           isScrolled
-            ? 'border-gray-200/80 bg-white/90 shadow-md'
-            : 'border-transparent bg-white/80 shadow-none'
+            ? 'border-gray-200/80 bg-white/90 shadow-md dark:border-gray-700/80 dark:bg-gray-900/90'
+            : 'border-transparent bg-white/80 shadow-none dark:bg-gray-900/80'
         }`}
       >
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:gap-8">
@@ -415,7 +419,7 @@ export function Navbar({
                 {brandName.charAt(0)}
               </span>
             )}
-            <span className="text-lg font-bold tracking-tight text-gray-900">
+            <span className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
               {brandName}
             </span>
           </a>
@@ -433,6 +437,20 @@ export function Navbar({
 
           {/* Right — user menu + hamburger toggle */}
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              data-testid="navbar-theme-toggle"
+              className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-900"
+            >
+              {isDarkMode ? (
+                <Sun aria-hidden="true" className="h-5 w-5" />
+              ) : (
+                <Moon aria-hidden="true" className="h-5 w-5" />
+              )}
+            </button>
+
             <UserDropdown
               avatarUrl={userAvatarUrl}
               userName={userName}
@@ -456,7 +474,7 @@ export function Navbar({
               aria-expanded={isMobileMenuOpen}
               aria-controls={drawerId}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-              className="rounded-lg p-2 text-gray-600 transition-all duration-300 ease-in-out hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:hidden"
+              className="rounded-lg p-2 text-gray-600 transition-all duration-300 ease-in-out hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-900 lg:hidden"
             >
               {isMobileMenuOpen ? (
                 <X aria-hidden="true" className="h-6 w-6" />
