@@ -1,23 +1,22 @@
 import { useEffect, useId, useState } from 'react'
-import { Plus, Filter } from 'lucide-react'
 import {
   DashboardSidebar,
+  DashboardHeader,
+  DashboardHomeView,
+  TaskListView,
+  TeamView,
   type SidebarNavItem,
-} from '@/components/dashboard/DashboardSidebar'
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
-import { StatWidget } from '@/components/dashboard/StatWidget'
-import { TaskCard } from '@/components/dashboard/TaskCard'
+} from '@/components/dashboard'
 import { TaskCreateModal } from '@/components/dashboard/TaskCreateModal'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
+import {
+  TaskDashboardProvider,
+  useTaskDashboard,
+} from '@/context/TaskDashboardContext'
 import type { User } from '@/lib/auth'
 import { REGISTRATION_SUCCESS_KEY } from '@/pages/RegisterPage'
 import type { ThemePreference } from '@/types/settings'
-import {
-  sampleTasks,
-  dashboardStats,
-  type Task,
-  type TaskStatus,
-} from '@/data/sampleTasks'
+import type { TaskStatus } from '@/data/sampleTasks'
 
 const SIDEBAR_ITEMS: SidebarNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -49,23 +48,28 @@ interface TaskDashboardProps {
   onNavigateToAnalytics?: () => void
 }
 
-export function TaskDashboard({
+function TaskDashboardContent({
   user,
   onLogout,
   onNavigateAway,
   onNavigateToAnalytics,
 }: TaskDashboardProps) {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks)
+  const { createTask, updateTaskStatus, deleteTask } = useTaskDashboard()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredTheme)
   const isDarkMode = resolveDarkMode(themePreference)
   const [activeNav, setActiveNav] = useState('dashboard')
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
-  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(
+  const [showRegistrationSuccess] = useState(
     () => sessionStorage.getItem(REGISTRATION_SUCCESS_KEY) === 'true',
   )
   const sidebarId = useId()
+
+  const actor = {
+    name: user.name,
+    avatarUrl: `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`,
+  }
 
   useEffect(() => {
     if (!showRegistrationSuccess) return
@@ -77,14 +81,6 @@ export function TaskDashboard({
     localStorage.setItem('theme', themePreference)
   }, [isDarkMode, themePreference])
 
-  const handleThemePreference = (theme: ThemePreference) => {
-    setThemePreference(theme)
-  }
-
-  const handleToggleDarkMode = () => {
-    setThemePreference(isDarkMode ? 'light' : 'dark')
-  }
-
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? 'hidden' : ''
     return () => {
@@ -93,31 +89,18 @@ export function TaskDashboard({
   }, [isSidebarOpen])
 
   const handleStatusChange = (id: string, status: TaskStatus) => {
-    setTasks((prev) =>
-      prev.map((task) => (task.id === id ? { ...task, status } : task)),
-    )
+    updateTaskStatus(id, status, actor)
   }
 
   const handleDeleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((task) => task.id !== id))
+    deleteTask(id, actor)
   }
 
   const handleCreateTask = (
-    taskData: Omit<Task, 'id' | 'assignee' | 'assigneeAvatar'>,
+    taskData: Parameters<typeof createTask>[0],
   ) => {
-    const newTask: Task = {
-      ...taskData,
-      id: `task-${Date.now()}`,
-      assignee: user.name,
-      assigneeAvatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`,
-    }
-    setTasks((prev) => [newTask, ...prev])
+    createTask(taskData, actor)
   }
-
-  const filteredTasks =
-    statusFilter === 'all'
-      ? tasks
-      : tasks.filter((task) => task.status === statusFilter)
 
   const navItems = SIDEBAR_ITEMS.map((item) => ({
     ...item,
@@ -154,9 +137,11 @@ export function TaskDashboard({
         <DashboardHeader
           title={pageTitles[activeNav] ?? 'Dashboard'}
           userName={user.name}
-          userAvatarUrl={`https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`}
+          userAvatarUrl={actor.avatarUrl}
           isDarkMode={isDarkMode}
-          onToggleDarkMode={handleToggleDarkMode}
+          onToggleDarkMode={() =>
+            setThemePreference(isDarkMode ? 'light' : 'dark')
+          }
           onOpenSidebar={() => setIsSidebarOpen(true)}
           onLogout={onLogout}
         />
@@ -176,8 +161,29 @@ export function TaskDashboard({
           )}
 
           {activeNav === 'settings' ? (
-            <SettingsPanel onThemeChange={handleThemePreference} />
-          ) : activeNav !== 'dashboard' && activeNav !== 'tasks' ? (
+            <SettingsPanel
+              onThemeChange={(theme) => setThemePreference(theme)}
+            />
+          ) : activeNav === 'dashboard' ? (
+            <DashboardHomeView
+              userName={user.name}
+              onNewTask={() => setIsCreateModalOpen(true)}
+              onViewTasks={() => setActiveNav('tasks')}
+              onViewAnalytics={onNavigateToAnalytics}
+              onStatusChange={handleStatusChange}
+              onDelete={handleDeleteTask}
+            />
+          ) : activeNav === 'tasks' ? (
+            <TaskListView
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              onNewTask={() => setIsCreateModalOpen(true)}
+              onStatusChange={handleStatusChange}
+              onDelete={handleDeleteTask}
+            />
+          ) : activeNav === 'team' ? (
+            <TeamView />
+          ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {pageTitles[activeNav]} — Coming soon
@@ -186,101 +192,6 @@ export function TaskDashboard({
                 This section is under development.
               </p>
             </div>
-          ) : (
-            <>
-              <section aria-labelledby="stats-heading" className="mb-8">
-                <h2 id="stats-heading" className="sr-only">
-                  Task statistics
-                </h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {dashboardStats.map((stat) => (
-                    <StatWidget key={stat.id} stat={stat} />
-                  ))}
-                </div>
-              </section>
-
-              <section aria-labelledby="tasks-heading">
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2
-                      id="tasks-heading"
-                      className="text-xl font-bold text-gray-900 dark:text-white"
-                    >
-                      Recent Tasks
-                    </h2>
-                    <p
-                      className="mt-1 text-sm text-gray-500 dark:text-gray-400"
-                      data-testid="task-count"
-                    >
-                      {filteredTasks.length} task
-                      {filteredTasks.length !== 1 ? 's' : ''} shown
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Filter
-                        aria-hidden="true"
-                        className="h-4 w-4 text-gray-400"
-                      />
-                      <label htmlFor="status-filter" className="sr-only">
-                        Filter by status
-                      </label>
-                      <select
-                        id="status-filter"
-                        data-testid="status-filter"
-                        value={statusFilter}
-                        onChange={(event) =>
-                          setStatusFilter(
-                            event.target.value as TaskStatus | 'all',
-                          )
-                        }
-                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-                      >
-                        <option value="all">All statuses</option>
-                        <option value="todo">To Do</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="done">Done</option>
-                      </select>
-                    </div>
-
-                    <button
-                      type="button"
-                      data-testid="new-task-button"
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
-                    >
-                      <Plus aria-hidden="true" className="h-4 w-4" />
-                      New Task
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  role="list"
-                  className="grid grid-cols-1 gap-4 lg:grid-cols-2"
-                >
-                  {filteredTasks.length > 0 ? (
-                    filteredTasks.map((task) => (
-                      <div key={task.id} role="listitem">
-                        <TaskCard
-                          task={task}
-                          onStatusChange={handleStatusChange}
-                          onDelete={handleDeleteTask}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <p
-                      className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400"
-                      data-testid="empty-tasks-message"
-                    >
-                      No tasks match the selected filter.
-                    </p>
-                  )}
-                </div>
-              </section>
-            </>
           )}
         </main>
       </div>
@@ -292,5 +203,13 @@ export function TaskDashboard({
         assigneeName={user.name}
       />
     </div>
+  )
+}
+
+export function TaskDashboard(props: TaskDashboardProps) {
+  return (
+    <TaskDashboardProvider>
+      <TaskDashboardContent {...props} />
+    </TaskDashboardProvider>
   )
 }

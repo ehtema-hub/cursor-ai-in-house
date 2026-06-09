@@ -11,6 +11,7 @@ export interface Task {
   assignee: string
   assigneeAvatar: string
   tags: string[]
+  projectId?: string
 }
 
 export interface DashboardStat {
@@ -33,6 +34,7 @@ export const sampleTasks: Task[] = [
     assignee: 'Maya Chen',
     assigneeAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Maya',
     tags: ['Design', 'UX'],
+    projectId: 'project-onboarding',
   },
   {
     id: 'task-2',
@@ -45,6 +47,7 @@ export const sampleTasks: Task[] = [
     assignee: 'Sam Ortiz',
     assigneeAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Sam',
     tags: ['Backend', 'API'],
+    projectId: 'project-platform',
   },
   {
     id: 'task-3',
@@ -57,6 +60,7 @@ export const sampleTasks: Task[] = [
     assignee: 'Jordan Lee',
     assigneeAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Jordan',
     tags: ['Testing'],
+    projectId: 'project-onboarding',
   },
   {
     id: 'task-4',
@@ -69,6 +73,7 @@ export const sampleTasks: Task[] = [
     assignee: 'Alex Rivera',
     assigneeAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Alex',
     tags: ['Review'],
+    projectId: 'project-platform',
   },
   {
     id: 'task-5',
@@ -81,6 +86,7 @@ export const sampleTasks: Task[] = [
     assignee: 'Priya Nair',
     assigneeAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Priya',
     tags: ['Docs'],
+    projectId: 'project-docs',
   },
   {
     id: 'task-6',
@@ -93,6 +99,7 @@ export const sampleTasks: Task[] = [
     assignee: 'Jordan Lee',
     assigneeAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Jordan',
     tags: ['Bug', 'Mobile'],
+    projectId: 'project-mobile',
   },
 ]
 
