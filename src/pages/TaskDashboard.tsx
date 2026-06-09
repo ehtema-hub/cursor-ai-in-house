@@ -8,6 +8,7 @@ import {
   type SidebarNavItem,
 } from '@/components/dashboard'
 import { TaskCreateModal } from '@/components/dashboard/TaskCreateModal'
+import { KanbanBoard } from '@/components/kanban'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import {
   TaskDashboardProvider,
@@ -183,6 +184,8 @@ function TaskDashboardContent({
             />
           ) : activeNav === 'team' ? (
             <TeamView />
+          ) : activeNav === 'calendar' ? (
+            <KanbanBoard />
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
