@@ -33,3 +33,16 @@ export type {
   BoardColumnProps,
   AddTaskModalProps,
 } from './kanban'
+export {
+  Feed,
+  PostCard,
+  CommentSection,
+  CreatePost,
+  UserAvatar,
+} from './social'
+export type {
+  PostCardProps,
+  CommentSectionProps,
+  CreatePostProps,
+  UserAvatarProps,
+} from './social'

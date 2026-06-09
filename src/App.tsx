@@ -5,15 +5,16 @@ import { ProductCardDemo } from '@/pages/ProductCardDemo'
 import { UserProfileDemo } from '@/pages/UserProfileDemo'
 import { TaskDashboard } from '@/pages/TaskDashboard'
 import { AnalyticsDashboard } from '@/pages/AnalyticsDashboard'
+import { FeedPage } from '@/pages/FeedPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 
-type DemoPage = 'tasks' | 'analytics' | 'products' | 'profiles'
+type DemoPage = 'tasks' | 'analytics' | 'products' | 'profiles' | 'feed'
 type AuthView = 'login' | 'register'
 
 const getPageFromHash = (): DemoPage => {
   const hash = window.location.hash.replace('#', '')
-  if (['tasks', 'analytics', 'products', 'profiles'].includes(hash)) {
+  if (['tasks', 'analytics', 'products', 'profiles', 'feed'].includes(hash)) {
     return hash as DemoPage
   }
   return 'tasks' // Default to tasks for authentication flow
@@ -71,6 +72,15 @@ function App() {
       },
     },
     {
+      label: 'Feed',
+      href: '#feed',
+      isActive: page === 'feed',
+      onClick: (event) => {
+        event.preventDefault()
+        handlePageChange('feed')
+      },
+    },
+    {
       label: 'Analytics',
       href: '#analytics',
       isActive: page === 'analytics',
@@ -93,6 +103,12 @@ function App() {
       href: '#analytics',
       icon: 'settings',
       onClick: () => handlePageChange('analytics'),
+    },
+    {
+      label: 'Team Feed',
+      href: '#feed',
+      icon: 'profile',
+      onClick: () => handlePageChange('feed'),
     },
     {
       label: 'Products Demo',
@@ -149,6 +165,8 @@ function App() {
       {page === 'analytics' && (
         <AnalyticsDashboard onNavigateAway={() => handlePageChange('tasks')} />
       )}
+
+      {page === 'feed' && <FeedPage />}
     </>
   )
 }
