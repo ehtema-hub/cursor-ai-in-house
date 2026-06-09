@@ -80,6 +80,7 @@ function NavLinks({ links, layout, onNavigate }: NavLinksProps) {
               link.onClick?.(event)
               onNavigate?.()
             }}
+            data-testid={link.label === 'Products' ? 'nav-link-products' : undefined} // Add data-testid directly
             aria-current={link.isActive ? 'page' : undefined}
             className={`group relative rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
               link.isActive
@@ -384,6 +385,7 @@ export function Navbar({
       <nav
         ref={navRef}
         aria-label="Main navigation"
+        data-testid="main-navbar"
         className={`border-b backdrop-blur-md transition-all duration-300 ease-in-out ${
           isScrolled
             ? 'border-gray-200/80 bg-white/90 shadow-md'

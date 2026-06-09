@@ -88,7 +88,7 @@ function ProductImage({
       />
 
       {badge && (
-        <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm">
+        <span className="absolute left-3 top-3 rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm">
           {badge}
         </span>
       )}
@@ -174,7 +174,7 @@ function AddToCartButton({
       aria-label={
         inStock ? `Add ${name} to cart for ${formattedPrice}` : `${name} is out of stock`
       }
-      className="mt-auto w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-emerald-500 hover:shadow-md focus-visible:scale-[1.02] focus-visible:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:focus-visible:scale-100 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none disabled:hover:scale-100"
+      className="mt-auto w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-emerald-500 hover:shadow-md focus-visible:scale-[1.02] focus-visible:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:focus-visible:scale-100 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none disabled:hover:scale-100"
     >
       {inStock ? 'Add to Cart' : 'Unavailable'}
     </button>
@@ -252,7 +252,7 @@ export function ProductCard({
             {formattedPrice}
           </p>
           {isOnSale && formattedOriginalPrice && (
-            <p className="text-sm font-medium text-gray-400 line-through">
+            <p className="text-sm font-medium text-gray-600 line-through">
               <span className="sr-only">Original price: </span>
               {formattedOriginalPrice}
             </p>
