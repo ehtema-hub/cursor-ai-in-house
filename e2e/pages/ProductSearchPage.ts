@@ -1,105 +1,118 @@
 import { type Page, expect, type Locator } from '@playwright/test'
+import { parsePriceText } from '../helpers/products'
 
 export class ProductSearchPage {
   readonly page: Page
-  readonly productCardDemoContainer: Locator
-  readonly searchQueryInput: Locator
+  readonly container: Locator
+  readonly catalogSection: Locator
+  readonly searchInput: Locator
   readonly categoryFilter: Locator
   readonly materialFilter: Locator
   readonly minPriceInput: Locator
   readonly maxPriceInput: Locator
-  readonly sortBySelect: Locator
+  readonly sortSelect: Locator
   readonly clearFiltersButton: Locator
   readonly noResultsMessage: Locator
-  readonly paginationPrevButton: Locator
-  readonly paginationNextButton: Locator
-  readonly currentPageButton: Locator
+  readonly paginationControls: Locator
+  readonly paginationPrev: Locator
+  readonly paginationNext: Locator
+  readonly productCards: Locator
 
   constructor(page: Page) {
     this.page = page
-    this.productCardDemoContainer = page.getByTestId('product-card-demo')
-    this.searchQueryInput = this.productCardDemoContainer.getByTestId('product-search-input')
-    this.categoryFilter = this.productCardDemoContainer.getByTestId('category-filter')
-    this.materialFilter = this.productCardDemoContainer.getByTestId('material-filter')
-    this.minPriceInput = this.productCardDemoContainer.getByTestId('price-min-input')
-    this.maxPriceInput = this.productCardDemoContainer.getByTestId('price-max-input')
-    this.sortBySelect = this.productCardDemoContainer.getByTestId('sort-by-select')
-    this.clearFiltersButton = this.productCardDemoContainer.getByTestId('clear-filters-button')
-    this.noResultsMessage = this.productCardDemoContainer.getByTestId('no-results-message')
-    this.paginationPrevButton = this.productCardDemoContainer.getByTestId('pagination-prev')
-    this.paginationNextButton = this.productCardDemoContainer.getByTestId('pagination-next')
-    this.currentPageButton = this.productCardDemoContainer.locator('[data-testid^="pagination-page-"][aria-current="page"]')
+    this.container = page.getByTestId('product-card-demo')
+    this.catalogSection = this.container.locator('section[aria-label="Product catalog"]')
+    this.searchInput = this.container.getByTestId('product-search-input')
+    this.categoryFilter = this.container.getByTestId('category-filter')
+    this.materialFilter = this.container.getByTestId('material-filter')
+    this.minPriceInput = this.container.getByTestId('price-min-input')
+    this.maxPriceInput = this.container.getByTestId('price-max-input')
+    this.sortSelect = this.container.getByTestId('sort-by-select')
+    this.clearFiltersButton = this.container.getByTestId('clear-filters-button')
+    this.noResultsMessage = this.container.getByTestId('no-results-message')
+    this.paginationControls = this.container.getByTestId('pagination-controls')
+    this.paginationPrev = this.container.getByTestId('pagination-prev')
+    this.paginationNext = this.container.getByTestId('pagination-next')
+    this.productCards = this.catalogSection.locator('article')
   }
 
   async goto() {
     await this.page.goto('/#products')
-    await this.productCardDemoContainer.waitFor({ state: 'visible' })
-    // Use waitForFunction to check for at least one product card to be visible dynamically
-    await this.page.waitForFunction(() => {
-      return document.querySelector('[data-testid^="product-card-"]') !== null
-    })
+    await expect(this.container).toBeVisible()
+    await this.waitForResults()
+  }
+
+  /** Waits until either product cards or the empty-state message is shown. */
+  async waitForResults() {
+    await expect(this.productCards.first().or(this.noResultsMessage)).toBeVisible()
   }
 
   async search(query: string) {
-    await this.searchQueryInput.fill(query)
-    await this.page.waitForTimeout(500) // Allow UI to re-render
+    await this.searchInput.fill(query)
+    await this.waitForResults()
   }
 
   async selectCategory(category: string) {
     await this.categoryFilter.selectOption(category)
-    await this.page.waitForTimeout(500) // Allow UI to re-render
+    await this.waitForResults()
   }
 
   async selectMaterial(material: string) {
     await this.materialFilter.selectOption(material)
-    await this.page.waitForTimeout(500) // Allow UI to re-render
+    await this.waitForResults()
   }
 
   async setMinPrice(price: number) {
     await this.minPriceInput.fill(String(price))
-    await this.page.waitForTimeout(500) // Allow UI to re-render
+    await this.waitForResults()
   }
 
   async setMaxPrice(price: number) {
     await this.maxPriceInput.fill(String(price))
-    await this.page.waitForTimeout(500) // Allow UI to re-render
+    await this.waitForResults()
   }
 
-  async selectSortOrder(order: string) {
-    await this.sortBySelect.selectOption(order)
-    await this.page.waitForTimeout(500) // Allow UI to re-render
+  async selectSort(order: string) {
+    await this.sortSelect.selectOption(order)
+    await this.waitForResults()
   }
 
   async clearFilters() {
     await this.clearFiltersButton.click()
-    await this.page.waitForTimeout(500) // Allow UI to re-render
+    await this.waitForResults()
   }
 
-  getProductCards() {
-    return this.productCardDemoContainer.locator('[data-testid^="product-card-"]')
+  async goToNextPage() {
+    await this.paginationNext.click()
+    await this.waitForResults()
   }
 
-  productCard(name: string) {
-    return this.productCardDemoContainer.locator('[data-testid^="product-card-"]', { hasText: name })
+  async goToPreviousPage() {
+    await this.paginationPrev.click()
+    await this.waitForResults()
+  }
+
+  currentPageButton(pageNumber: number) {
+    return this.container.getByTestId(`pagination-page-${pageNumber}`)
   }
 
   async getProductNames() {
-    const names = await this.getProductCards().evaluateAll((cards) =>
-      cards.map((card) => card.querySelector('h3')?.textContent?.trim() || ''),
-    )
-    return names.filter(Boolean) as string[]
+    const names = await this.productCards.locator('h3').allTextContents()
+    return names.map((name) => name.trim()).filter(Boolean)
   }
 
   async getProductPrices() {
-    const prices = await this.getProductCards().evaluateAll((cards) =>
-      cards.map((card) => {
-        const priceText = card
-          .querySelector('p.text-xl')
-          ?.textContent?.replace('Current price: ', '')
-          .replace('$', '')
-        return priceText ? parseFloat(priceText) : 0
-      }),
-    )
-    return prices
+    const priceTexts = await this.productCards.locator('p.text-xl').allTextContents()
+    return priceTexts.map(parsePriceText)
+  }
+
+  async getProductCount() {
+    return this.productCards.count()
+  }
+
+  async expectSortedPrices(order: 'asc' | 'desc') {
+    const prices = await this.getProductPrices()
+    const sorted = [...prices].sort((a, b) => (order === 'asc' ? a - b : b - a))
+    expect(prices).toEqual(sorted)
   }
 }
