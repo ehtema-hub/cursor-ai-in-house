@@ -3,7 +3,10 @@ import type { ProductCardProps } from '@/components'
 type SampleProduct = Omit<
   ProductCardProps,
   'onAddToCart' | 'onProductClick' | 'className'
->
+> & {
+  category: string
+  material?: string
+}
 
 export const sampleProducts: SampleProduct[] = [
   {
@@ -18,6 +21,7 @@ export const sampleProducts: SampleProduct[] = [
     rating: 4.5,
     reviewCount: 1284,
     badge: 'Sale',
+    category: 'Electronics',
   },
   {
     id: 'smart-watch',
@@ -30,6 +34,7 @@ export const sampleProducts: SampleProduct[] = [
     rating: 4.8,
     reviewCount: 3421,
     badge: 'New',
+    category: 'Electronics',
   },
   {
     id: 'leather-tote',
@@ -41,19 +46,23 @@ export const sampleProducts: SampleProduct[] = [
     imageAlt: 'Cognac brown leather tote bag',
     rating: 4.6,
     reviewCount: 512,
+    category: 'Bags',
+    material: 'Leather',
   },
   {
     id: 'ceramic-mug-set',
     name: 'Stoneware Mug Set (4-Pack)',
     description:
       'Microwave-safe glazed stoneware mugs in earthy neutral tones.',
-    price: 38.0,
-    originalPrice: 48.0,
+    price: 33.0,
+    originalPrice: 38.0,
     imageUrl: 'https://picsum.photos/seed/mugs/400/300',
     imageAlt: 'Set of four ceramic mugs in cream and terracotta',
     rating: 4.2,
     reviewCount: 89,
     badge: 'Sale',
+    category: 'Home Goods',
+    material: 'Ceramic',
   },
   {
     id: 'desk-lamp',
@@ -65,6 +74,7 @@ export const sampleProducts: SampleProduct[] = [
     imageAlt: 'Minimal white adjustable desk lamp',
     rating: 4.4,
     reviewCount: 276,
+    category: 'Home Goods',
   },
   {
     id: 'yoga-mat',
@@ -77,6 +87,7 @@ export const sampleProducts: SampleProduct[] = [
     rating: 4.7,
     reviewCount: 903,
     inStock: false,
+    category: 'Fitness',
   },
   {
     id: 'espresso-machine',
@@ -90,6 +101,7 @@ export const sampleProducts: SampleProduct[] = [
     rating: 4.9,
     reviewCount: 1876,
     badge: 'Sale',
+    category: 'Kitchen',
   },
   {
     id: 'linen-sheets',
@@ -101,5 +113,64 @@ export const sampleProducts: SampleProduct[] = [
     imageAlt: 'Folded white linen bed sheets',
     rating: 4.3,
     reviewCount: 445,
+    category: 'Home Goods',
+    material: 'Linen',
   },
+  {
+    id: 'gaming-mouse',
+    name: 'Viper Gaming Mouse',
+    description: 'Ultra-lightweight gaming mouse with customizable RGB lighting.',
+    price: 79.99,
+    imageUrl: 'https://picsum.photos/seed/gaming-mouse/400/300',
+    imageAlt: 'Black gaming mouse with glowing lights',
+    rating: 4.7,
+    reviewCount: 2100,
+    category: 'Electronics',
+  },
+  {
+    id: 'cookware-set',
+    name: 'Premium Non-stick Cookware Set',
+    description: '7-piece non-stick cookware set for all stove types.',
+    price: 249.99,
+    imageUrl: 'https://picsum.photos/seed/cookware/400/300',
+    imageAlt: 'Set of non-stick pots and pans',
+    rating: 4.6,
+    reviewCount: 850,
+    category: 'Kitchen',
+  },
+  {
+    id: 'backpack',
+    name: 'Voyager Travel Backpack',
+    description: 'Water-resistant travel backpack with laptop compartment.',
+    price: 99.0,
+    imageUrl: 'https://picsum.photos/seed/backpack/400/300',
+    imageAlt: 'Stylish grey travel backpack',
+    rating: 4.5,
+    reviewCount: 620,
+    category: 'Bags',
+  },
+]
+
+export const ALL_CATEGORIES = [
+  { value: 'all', label: 'All Categories' },
+  { value: 'Electronics', label: 'Electronics' },
+  { value: 'Bags', label: 'Bags' },
+  { value: 'Home Goods', label: 'Home Goods' },
+  { value: 'Fitness', label: 'Fitness' },
+  { value: 'Kitchen', label: 'Kitchen' },
+]
+
+export const ALL_MATERIALS = [
+  { value: 'all', label: 'All Materials' },
+  { value: 'Leather', label: 'Leather' },
+  { value: 'Ceramic', label: 'Ceramic' },
+  { value: 'Linen', label: 'Linen' },
+]
+
+export const SORT_OPTIONS = [
+  { value: 'price-asc', label: 'Price: Low to High' },
+  { value: 'price-desc', label: 'Price: High to Low' },
+  { value: 'name-asc', label: 'Name: A-Z' },
+  { value: 'name-desc', label: 'Name: Z-A' },
+  { value: 'rating-desc', label: 'Rating: High to Low' },
 ]
