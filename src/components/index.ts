@@ -22,3 +22,14 @@ export {
   defaultFilters,
 } from './analytics'
 export type { FilterState } from './analytics'
+export {
+  KanbanBoard,
+  BoardColumn,
+  KanbanTaskCard,
+  AddTaskModal,
+} from './kanban'
+export type {
+  KanbanTaskCardProps,
+  BoardColumnProps,
+  AddTaskModalProps,
+} from './kanban'
