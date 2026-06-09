@@ -8,6 +8,7 @@ import {
   defaultFilters,
   type FilterState,
 } from '@/components/analytics'
+import { useTheme } from '@/context/ThemeContext'
 import {
   analyticsRecords,
   kpiMetrics,
@@ -15,13 +16,6 @@ import {
   trafficSourcesData,
   userGrowthData,
 } from '@/data/analyticsData'
-
-function getInitialDarkMode(): boolean {
-  const stored = localStorage.getItem('theme')
-  if (stored === 'dark') return true
-  if (stored === 'light') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
 
 function filterRecords(records: typeof analyticsRecords, filters: FilterState) {
   return records.filter((record) => {
@@ -44,19 +38,14 @@ interface AnalyticsDashboardProps {
 }
 
 export function AnalyticsDashboard({ onNavigateAway }: AnalyticsDashboardProps) {
+  const { isDarkMode, toggleDarkMode } = useTheme()
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [isLoading, setIsLoading] = useState(true)
-  const [isDarkMode, setIsDarkMode] = useState(getInitialDarkMode)
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1200)
     return () => clearTimeout(timer)
   }, [])
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode)
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
-  }, [isDarkMode])
 
   const filteredRecords = useMemo(
     () => filterRecords(analyticsRecords, filters),
@@ -87,7 +76,7 @@ export function AnalyticsDashboard({ onNavigateAway }: AnalyticsDashboardProps) 
             )}
             <button
               type="button"
-              onClick={() => setIsDarkMode((prev) => !prev)}
+              onClick={toggleDarkMode}
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-gray-400 dark:hover:bg-gray-800"
             >

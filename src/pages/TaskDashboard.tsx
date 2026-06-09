@@ -14,9 +14,9 @@ import {
   TaskDashboardProvider,
   useTaskDashboard,
 } from '@/context/TaskDashboardContext'
+import { useTheme } from '@/context/ThemeContext'
 import type { User } from '@/lib/auth'
 import { REGISTRATION_SUCCESS_KEY } from '@/pages/RegisterPage'
-import type { ThemePreference } from '@/types/settings'
 import type { TaskStatus } from '@/data/sampleTasks'
 
 const SIDEBAR_ITEMS: SidebarNavItem[] = [
@@ -27,20 +27,6 @@ const SIDEBAR_ITEMS: SidebarNavItem[] = [
   { id: 'team', label: 'Team', icon: 'team' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ]
-
-function resolveDarkMode(theme: ThemePreference): boolean {
-  if (theme === 'dark') return true
-  if (theme === 'light') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
-function getStoredTheme(): ThemePreference {
-  const stored = localStorage.getItem('theme')
-  if (stored === 'dark' || stored === 'light' || stored === 'system') {
-    return stored
-  }
-  return 'system'
-}
 
 interface TaskDashboardProps {
   user: User
@@ -56,10 +42,9 @@ function TaskDashboardContent({
   onNavigateToAnalytics,
 }: TaskDashboardProps) {
   const { createTask, updateTaskStatus, deleteTask } = useTaskDashboard()
+  const { isDarkMode, toggleDarkMode, setThemePreference } = useTheme()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredTheme)
-  const isDarkMode = resolveDarkMode(themePreference)
   const [activeNav, setActiveNav] = useState('dashboard')
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [showRegistrationSuccess] = useState(
@@ -76,11 +61,6 @@ function TaskDashboardContent({
     if (!showRegistrationSuccess) return
     sessionStorage.removeItem(REGISTRATION_SUCCESS_KEY)
   }, [showRegistrationSuccess])
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode)
-    localStorage.setItem('theme', themePreference)
-  }, [isDarkMode, themePreference])
 
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? 'hidden' : ''
@@ -140,9 +120,7 @@ function TaskDashboardContent({
           userName={user.name}
           userAvatarUrl={actor.avatarUrl}
           isDarkMode={isDarkMode}
-          onToggleDarkMode={() =>
-            setThemePreference(isDarkMode ? 'light' : 'dark')
-          }
+          onToggleDarkMode={toggleDarkMode}
           onOpenSidebar={() => setIsSidebarOpen(true)}
           onLogout={onLogout}
         />
