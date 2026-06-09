@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { ProductCard } from '@/components'
 import {
   sampleProducts,
@@ -80,6 +80,11 @@ export function ProductCardDemo() {
     return result
   }, [searchQuery, selectedCategory, selectedMaterial, priceRange, sortOrder])
 
+  useEffect(() => {
+    // Reset current page when filters or search change
+    setCurrentPage(1)
+  }, [searchQuery, selectedCategory, selectedMaterial, priceRange, sortOrder])
+
   const totalPages = Math.ceil(filteredAndSortedProducts.length / ITEMS_PER_PAGE)
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
@@ -125,7 +130,6 @@ export function ProductCardDemo() {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
-                  setCurrentPage(1)
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pl-10 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
               />
@@ -140,7 +144,6 @@ export function ProductCardDemo() {
                 value={selectedCategory}
                 onChange={(e) => {
                   setSelectedCategory(e.target.value)
-                  setCurrentPage(1)
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
@@ -159,7 +162,6 @@ export function ProductCardDemo() {
                 value={selectedMaterial}
                 onChange={(e) => {
                   setSelectedMaterial(e.target.value)
-                  setCurrentPage(1)
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
@@ -181,7 +183,6 @@ export function ProductCardDemo() {
                   value={priceRange[0]}
                   onChange={(e) => {
                     setPriceRange([Number(e.target.value), priceRange[1]])
-                    setCurrentPage(1)
                   }}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
                 />
@@ -194,7 +195,6 @@ export function ProductCardDemo() {
                   value={priceRange[1]}
                   onChange={(e) => {
                     setPriceRange([priceRange[0], Number(e.target.value)])
-                    setCurrentPage(1)
                   }}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
                 />
@@ -210,7 +210,6 @@ export function ProductCardDemo() {
                 value={sortOrder}
                 onChange={(e) => {
                   setSortOrder(e.target.value)
-                  setCurrentPage(1)
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >

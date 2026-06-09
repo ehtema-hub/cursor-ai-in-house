@@ -19,12 +19,6 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5173/#tasks' }, // Default to tasks page for auth tests
-      testIgnore: '**/product-search.spec.ts', // Exclude product search tests from default run
-    },
-    {
-      name: 'product-search-chromium',
-      testMatch: '**/product-search.spec.ts',
-      use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5173/#products' }, // Set specific baseURL for product search tests
     },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },

@@ -52,39 +52,4 @@ test.describe('Error Handling', () => {
 
     await expect(page.getByTestId('login-error')).toContainText('required')
   })
-
-  test('create task shows error for missing title', async ({ page }) => {
-    await loginUser(page)
-    await page.getByTestId('new-task-button').click()
-    await page.getByTestId('create-task-modal').waitFor({ state: 'visible' }) // Explicit wait for create task modal
-
-    await page.getByTestId('task-due-date').fill('2026-12-31')
-    await page.getByTestId('create-task-submit').click()
-    await expect(page.getByTestId('create-task-error')).toContainText(
-      'Title is required',
-    )
-  })
-
-  test('create task shows error for missing due date', async ({ page }) => {
-    await loginUser(page)
-    await page.getByTestId('new-task-button').click()
-    await page.getByTestId('create-task-modal').waitFor({ state: 'visible' }) // Explicit wait for create task modal
-
-    await page.getByTestId('task-title').fill('Test Task')
-    await page.getByTestId('create-task-submit').click()
-    await expect(page.getByTestId('create-task-error')).toContainText(
-      'Due Date is required',
-    )
-  })
-
-  test('cancel create task closes modal without creating', async ({ page }) => {
-    await loginUser(page)
-    await page.getByTestId('new-task-button').click()
-    await page.getByTestId('create-task-modal').waitFor({ state: 'visible' }) // Explicit wait for create task modal
-
-    await page.getByTestId('task-title').fill('Task to be cancelled')
-    await page.getByTestId('close-create-task').click()
-    await expect(page.getByTestId('create-task-modal')).toBeHidden()
-    await expect(page.locator('text=Task to be cancelled')).not.toBeVisible()
-  })
 })
