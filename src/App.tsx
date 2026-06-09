@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { Navbar, type NavLink } from '@/components'
+import { Navbar, type NavLink, type UserMenuItem } from '@/components'
 import { ProductCardDemo } from '@/pages/ProductCardDemo'
 import { UserProfileDemo } from '@/pages/UserProfileDemo'
 import { TaskDashboard } from '@/pages/TaskDashboard'
@@ -81,7 +81,7 @@ function App() {
     },
   ]
 
-  const userMenuItems = [
+  const userMenuItems: UserMenuItem[] = [
     {
       label: 'Task Dashboard',
       href: '#tasks',

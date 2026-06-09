@@ -55,8 +55,6 @@ function FormField({
   error?: string
   children: ReactNode
 }) {
-  const errorId = error ? `register-error-${id.replace('register-', '')}` : undefined
-
   return (
     <div>
       <label htmlFor={id} className={labelClassName}>
