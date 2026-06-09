@@ -10,6 +10,7 @@ import { TaskCard } from '@/components/dashboard/TaskCard'
 import { TaskCreateModal } from '@/components/dashboard/TaskCreateModal'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import type { User } from '@/lib/auth'
+import { REGISTRATION_SUCCESS_KEY } from '@/pages/RegisterPage'
 import type { ThemePreference } from '@/types/settings'
 import {
   sampleTasks,
@@ -61,7 +62,15 @@ export function TaskDashboard({
   const isDarkMode = resolveDarkMode(themePreference)
   const [activeNav, setActiveNav] = useState('dashboard')
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(
+    () => sessionStorage.getItem(REGISTRATION_SUCCESS_KEY) === 'true',
+  )
   const sidebarId = useId()
+
+  useEffect(() => {
+    if (!showRegistrationSuccess) return
+    sessionStorage.removeItem(REGISTRATION_SUCCESS_KEY)
+  }, [showRegistrationSuccess])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode)
@@ -156,6 +165,16 @@ export function TaskDashboard({
           id="main-content"
           className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
         >
+          {showRegistrationSuccess && (
+            <p
+              role="status"
+              data-testid="register-success-message"
+              className="mb-6 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300"
+            >
+              Account created successfully! Welcome to TaskFlow, {user.name}.
+            </p>
+          )}
+
           {activeNav === 'settings' ? (
             <SettingsPanel onThemeChange={handleThemePreference} />
           ) : activeNav !== 'dashboard' && activeNav !== 'tasks' ? (

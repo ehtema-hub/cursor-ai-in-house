@@ -27,6 +27,11 @@ npm run test:e2e:chromium
 npm run test:e2e:ui
 ```
 
+###Run specific test folder
+```bash
+npx playwright test e2e/multi-step-registration.spec.ts
+```
+
 ## Project Structure
 
 ```
