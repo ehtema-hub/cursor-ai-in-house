@@ -28,3 +28,15 @@ playwright/.cache/
 *.njsproj
 *.sln
 *.sw?
+
+# Python / Flask backend
+backend/.env
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.db
+backend/instance/
+backend/.pytest_cache/
+backend/.mypy_cache/
+*.pyc
