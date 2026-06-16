@@ -11,6 +11,7 @@ from app.schemas.user_schema import (
     TokenSchema,
     UserSchema,
 )
+from app.utils.auth_helpers import get_current_user
 
 blp = Blueprint(
     "auth",
@@ -81,3 +82,12 @@ class Logout(MethodView):
     def post(self):
         """Logout (client should discard tokens)."""
         return {"message": "Successfully logged out."}
+
+
+@blp.route("/me")
+class AuthMe(MethodView):
+    @jwt_required()
+    @blp.response(200, UserSchema)
+    def get(self):
+        """Get the currently authenticated user."""
+        return get_current_user()

@@ -2,6 +2,16 @@ from app.models.notification import Notification
 from app.models.project import Project, ProjectMember
 from app.models.task import Task
 from app.models.user import User
+from app.support.models import (
+    NotificationPreference,
+    SupportNotification,
+    SupportTicket,
+    TicketAssignment,
+    TicketAttachment,
+    TicketComment,
+    TicketCounter,
+    TicketStatusHistory,
+)
 
 __all__ = [
     "User",
@@ -9,4 +19,12 @@ __all__ = [
     "ProjectMember",
     "Task",
     "Notification",
+    "SupportTicket",
+    "TicketComment",
+    "TicketAssignment",
+    "TicketAttachment",
+    "TicketStatusHistory",
+    "SupportNotification",
+    "NotificationPreference",
+    "TicketCounter",
 ]
