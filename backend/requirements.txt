@@ -21,6 +21,10 @@ apispec>=6.6.0,<7.0.0
 # Environment & utilities
 python-dotenv>=1.0.0,<2.0.0
 
+# Security & validation
+bcrypt>=4.1.0,<5.0.0
+bleach>=6.1.0,<7.0.0
+
 # Production server (optional)
 gunicorn>=22.0.0,<24.0.0
 
