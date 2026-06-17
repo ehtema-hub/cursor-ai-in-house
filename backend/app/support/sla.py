@@ -33,11 +33,23 @@ def is_sla_missed(deadline: datetime | None) -> bool:
     return datetime.now(timezone.utc) > deadline
 
 
+def _ensure_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def check_and_update_sla_flags(ticket) -> None:
-    if ticket.first_response_at and not ticket.sla_response_met:
-        if ticket.sla_response_due and ticket.first_response_at <= ticket.sla_response_due:
+    first_response = _ensure_utc(ticket.first_response_at)
+    response_due = _ensure_utc(ticket.sla_response_due)
+    if first_response and not ticket.sla_response_met:
+        if response_due and first_response <= response_due:
             ticket.sla_response_met = True
 
-    if ticket.resolved_at and not ticket.sla_resolution_met:
-        if ticket.sla_resolution_due and ticket.resolved_at <= ticket.sla_resolution_due:
+    resolved_at = _ensure_utc(ticket.resolved_at)
+    resolution_due = _ensure_utc(ticket.sla_resolution_due)
+    if resolved_at and not ticket.sla_resolution_met:
+        if resolution_due and resolved_at <= resolution_due:
             ticket.sla_resolution_met = True

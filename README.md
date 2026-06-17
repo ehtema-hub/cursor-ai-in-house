@@ -1,6 +1,20 @@
-# ShopVerse / TaskFlow Demo
+# Cursor AI In-House Module 6
 
-A full-featured React demo application built with TypeScript, Vite, and Tailwind CSS v4. It showcases e-commerce UI, user profiles, team task management, analytics, a Kanban board, a social feed, and multi-step registration — with Playwright E2E test coverage.
+Monorepo with three applications: a React frontend demo, a Flask task/support API, and a standalone blog API.
+
+| Application | Directory | Port | Description |
+|-------------|-----------|------|-------------|
+| **Frontend** | `.` (root) | 5173 | React demo — e-commerce, tasks, Kanban, social feed, analytics |
+| **Backend API** | [`backend/`](./backend/README.md) | 5000 | Task management + customer support ticket system |
+| **Blog API** | [`blog-api/`](./blog-api/README.md) | 5001 | Blog platform REST API with posts, comments, and search |
+
+Each application has its own README with setup instructions, API docs, and testing details.
+
+---
+
+# Frontend — ShopVerse / TaskFlow Demo
+
+React demo application built with TypeScript, Vite, and Tailwind CSS v4. Showcases e-commerce UI, user profiles, team task management, analytics, a Kanban board, a social feed, and multi-step registration — with Playwright E2E test coverage.
 
 ## Tech Stack
 
@@ -165,3 +179,5 @@ e2e/
 ## Demo Credentials
 
 Register a new account via **Tasks → Sign up**, or use any credentials you create during registration. Auth data is stored locally in the browser (`localStorage`).
+
+For the backend support ticket API, see [backend/README.md](./backend/README.md) for server-side seed credentials.
