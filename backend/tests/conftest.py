@@ -116,3 +116,7 @@ def support_users(app):
 
     with app.app_context():
         seed_support_users()
+
+
+# Stdlib `unittest` package name conflicts with tests/unittest/ — run via python -m tests.unittest.run_suite
+collect_ignore = ["unittest"]
