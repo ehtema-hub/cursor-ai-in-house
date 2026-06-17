@@ -14,6 +14,27 @@ class Config:
     RATE_LIMIT_MAX_REQUESTS = int(os.environ.get("RATE_LIMIT_MAX_REQUESTS", "100"))
     RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "60"))
 
+    REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    CACHE_DEFAULT_TIMEOUT = int(os.environ.get("CACHE_DEFAULT_TIMEOUT", "300"))
+    CACHE_USE_REDIS_IN_TESTS = os.environ.get("CACHE_USE_REDIS_IN_TESTS", "").lower() == "true"
+
+    CELERY_BROKER_URL = os.environ.get(
+        "CELERY_BROKER_URL",
+        os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
+    )
+    CELERY_RESULT_BACKEND = os.environ.get(
+        "CELERY_RESULT_BACKEND",
+        os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
+    )
+    CELERY_TASK_ALWAYS_EAGER = False
+    CELERY_TASK_EAGER_PROPAGATES = True
+    CELERY_BEAT_SCHEDULE = {
+        "scan-sla-violations": {
+            "task": "tasks.scan_sla_violations",
+            "schedule": 900.0,
+        },
+    }
+
     # flask-smorest / OpenAPI
     API_TITLE = "TaskFlow Support API"
     API_VERSION = "v1"
@@ -35,6 +56,9 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     JWT_SECRET_KEY = "test-jwt-secret"
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+    CACHE_USE_REDIS_IN_TESTS = False
 
 
 class ProductionConfig(Config):
