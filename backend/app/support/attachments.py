@@ -2,7 +2,7 @@ import os
 import uuid
 from pathlib import Path
 
-from flask import current_app
+from flask import current_app, request
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
@@ -85,3 +85,22 @@ def save_attachment(ticket_id: int, file: FileStorage, comment_id: int | None = 
     )
     db.session.add(attachment)
     return attachment
+
+
+def save_attachments_from_request(ticket_id: int, files) -> list[TicketAttachment]:
+    """Save up to MAX_ATTACHMENTS_PER_TICKET files from a request file list."""
+    saved: list[TicketAttachment] = []
+    for file in files:
+        if file and file.filename:
+            saved.append(save_attachment(ticket_id, file))
+    return saved
+
+
+def collect_upload_files():
+    """Collect files from multipart request (supports 'file' or 'files')."""
+    uploads = []
+    if "files" in request.files:
+        uploads.extend(request.files.getlist("files"))
+    if "file" in request.files:
+        uploads.append(request.files["file"])
+    return [f for f in uploads if f and f.filename]

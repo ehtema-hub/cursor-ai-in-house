@@ -144,8 +144,13 @@ def validate_status_transition(ticket: SupportTicket, new_status: str, user: Use
                 "FORBIDDEN",
                 403,
             )
-        if user.is_customer and ticket.customer_id != user.id:
-            raise SupportAPIError("Insufficient permissions.", "FORBIDDEN", 403)
+        if user.is_customer:
+            is_owner = (
+                ticket.customer_id == user.id
+                or ticket.customer_email.lower() == user.email.lower()
+            )
+            if not is_owner:
+                raise SupportAPIError("Insufficient permissions.", "FORBIDDEN", 403)
 
 
 def update_ticket_status(
@@ -182,6 +187,15 @@ def update_ticket_status(
     if ticket.assigned_to:
         recipients.add(ticket.assigned_to.email)
     email.notify_status_changed(ticket, old_status, new_status)
+
+    if ticket.customer_id:
+        _create_notification(
+            ticket.customer_id,
+            ticket.id,
+            "status_changed",
+            "Ticket status updated",
+            f"Ticket {ticket.ticket_number} is now {new_status}.",
+        )
 
     for recipient in recipients:
         notify_user = User.query.filter_by(email=recipient).first()
