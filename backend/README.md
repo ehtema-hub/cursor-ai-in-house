@@ -165,6 +165,14 @@ python -m tests.unittest.run_suite -v
 
 See `tests/USER_PROFILE_MANAGEMENT_TEST_CASES.md` for the full UPM-* specification.
 
+### E-commerce checkout (unittest)
+
+```bash
+python -m tests.unittest.ecommerce.run_suite -v
+```
+
+See `tests/ECOMMERCE_CHECKOUT_TEST_CASES.md` for the full CHK-* specification.
+
 ## Project Structure
 
 ```
