@@ -1,5 +1,7 @@
 from app.extensions import db
 from app.models.notification import Notification
+from app.services.cache import cache, invalidate_unread_count, unread_count_cache_key
+from app.tasks.background import process_notification_side_effects
 
 
 def create_notification(
@@ -20,7 +22,29 @@ def create_notification(
         related_task_id=related_task_id,
     )
     db.session.add(notification)
+    db.session.flush()
+    invalidate_unread_count(user_id)
+    pending = db.session.info.setdefault("pending_notifications", [])
+    pending.append((notification.id, user_id))
     return notification
+
+
+def dispatch_pending_notifications() -> None:
+    """Dispatch Celery jobs for notifications queued during the current transaction."""
+    pending = db.session.info.pop("pending_notifications", [])
+    for notification_id, user_id in pending:
+        process_notification_side_effects.delay(notification_id, user_id)
+
+
+def get_unread_count(user_id: int) -> int:
+    key = unread_count_cache_key(user_id)
+    cached = cache.get(key)
+    if cached is not None:
+        return int(cached)
+
+    count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
+    cache.set(key, count, timeout=30)
+    return count
 
 
 def notify_task_assigned(task, assigner_name: str) -> None:

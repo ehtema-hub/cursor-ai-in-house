@@ -1,6 +1,6 @@
 from flask.views import MethodView
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required
-from flask_smorest import Blueprint
+from flask_smorest import Blueprint, abort
 
 from app.extensions import db
 from app.models.user import User
@@ -28,7 +28,7 @@ class Register(MethodView):
     def post(self, data):
         """Register a new user."""
         if User.query.filter_by(email=data["email"].lower()).first():
-            blp.abort(409, message="An account with this email already exists.")
+            abort(409, message="An account with this email already exists.")
 
         user = User(
             name=data["name"].strip(),
@@ -49,10 +49,10 @@ class Login(MethodView):
         user = User.query.filter_by(email=data["email"].lower()).first()
 
         if user is None or not user.check_password(data["password"]):
-            blp.abort(401, message="Invalid email or password.")
+            abort(401, message="Invalid email or password.")
 
         if not user.is_active:
-            blp.abort(403, message="Account is disabled.")
+            abort(403, message="Account is disabled.")
 
         return {
             "access_token": create_access_token(identity=str(user.id)),
