@@ -9,7 +9,7 @@ from sqlalchemy import or_
 
 from app.extensions import db
 from app.models.user import User
-from app.support.attachments import save_attachment
+from app.support.attachments import collect_upload_files, save_attachment, save_attachments_from_request
 from app.support.errors import SupportAPIError
 from app.support.models import (
     SupportNotification,
@@ -180,11 +180,20 @@ class TicketList(MethodView):
             },
         }
 
-    @tickets_blp.arguments(CreateTicketSchema, location="json")
     @tickets_blp.response(201, SupportTicketSchema)
-    def post(self, data):
-        """Create a new support ticket."""
+    def post(self):
+        """Create a new support ticket (JSON or multipart with optional attachments)."""
         user = get_current_user_required()
+        if request.files:
+            data = {
+                "subject": request.form.get("subject"),
+                "description": request.form.get("description"),
+                "customer_email": request.form.get("customer_email"),
+                "priority": request.form.get("priority"),
+                "category": request.form.get("category"),
+            }
+        else:
+            data = CreateTicketSchema().load(request.get_json() or {})
         validated = validate_ticket_create(data)
 
         if user.is_customer:
@@ -220,6 +229,10 @@ class TicketList(MethodView):
                 note="Ticket created",
             )
         )
+
+        upload_files = collect_upload_files()
+        if upload_files:
+            save_attachments_from_request(ticket.id, upload_files)
 
         auto_assign = request.args.get("auto_assign", "true").lower() != "false"
         if auto_assign:
@@ -466,6 +479,13 @@ class TicketAssign(MethodView):
         else:
             if not user.is_admin:
                 raise SupportAPIError("Only administrators can manually assign tickets.", "FORBIDDEN", 403)
+            if not data.get("assigned_to_id"):
+                raise SupportAPIError(
+                    "Agent ID is required for manual assignment.",
+                    "VALIDATION_ERROR",
+                    400,
+                    {"assigned_to_id": ["This field is required."]},
+                )
             agent = User.query.get(data["assigned_to_id"])
             if agent is None:
                 raise SupportAPIError("Agent not found.", "NOT_FOUND", 404)

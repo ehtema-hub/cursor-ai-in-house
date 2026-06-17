@@ -120,7 +120,7 @@ class UpdatePrioritySchema(Schema):
 
 
 class AssignTicketSchema(Schema):
-    assigned_to_id = fields.Int(required=True)
+    assigned_to_id = fields.Int(required=False, allow_none=True)
     note = fields.Str(required=False, allow_none=True)
     auto_assign = fields.Bool(load_default=False)
 
