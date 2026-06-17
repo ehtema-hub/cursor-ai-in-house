@@ -1,6 +1,6 @@
 from flask.views import MethodView
 from flask_jwt_extended import jwt_required
-from flask_smorest import Blueprint
+from flask_smorest import Blueprint, abort
 
 from app.extensions import db
 from app.models.project import Project, ProjectMember
@@ -12,9 +12,10 @@ from app.schemas.user_schema import (
     ProjectSchema,
     ProjectUpdateSchema,
 )
-from app.services.notifications import notify_project_invite
+from app.services.notifications import dispatch_pending_notifications, notify_project_invite
 from app.services.permissions import (
     add_project_owner_membership,
+    bust_membership_cache,
     find_user_by_email,
     get_project_or_404,
     get_user_projects_query,
@@ -93,7 +94,7 @@ class ProjectDetail(MethodView):
         project = get_project_or_404(project_id)
 
         if project.owner_id != user.id:
-            blp.abort(403, message="Only the project owner can delete this project.")
+            abort(403, message="Only the project owner can delete this project.")
 
         db.session.delete(project)
         db.session.commit()
@@ -121,14 +122,14 @@ class ProjectMembers(MethodView):
 
         member_user = find_user_by_email(data["email"])
         if member_user is None:
-            blp.abort(404, message="User with that email was not found.")
+            abort(404, message="User with that email was not found.")
 
         existing = ProjectMember.query.filter_by(
             project_id=project_id,
             user_id=member_user.id,
         ).first()
         if existing:
-            blp.abort(409, message="User is already a member of this project.")
+            abort(409, message="User is already a member of this project.")
 
         membership = ProjectMember(
             project_id=project_id,
@@ -138,6 +139,8 @@ class ProjectMembers(MethodView):
         db.session.add(membership)
         notify_project_invite(member_user.id, project, user.name)
         db.session.commit()
+        dispatch_pending_notifications()
+        bust_membership_cache(project_id, member_user.id)
         return membership
 
 
@@ -152,7 +155,7 @@ class ProjectMemberDetail(MethodView):
         project = get_project_or_404(project_id)
 
         if user_id == project.owner_id:
-            blp.abort(400, message="Cannot remove the project owner.")
+            abort(400, message="Cannot remove the project owner.")
 
         membership = ProjectMember.query.filter_by(
             project_id=project_id,
@@ -161,4 +164,5 @@ class ProjectMemberDetail(MethodView):
 
         db.session.delete(membership)
         db.session.commit()
+        bust_membership_cache(project_id, user_id)
         return {"message": "Member removed from project."}

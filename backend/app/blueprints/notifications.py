@@ -14,7 +14,9 @@ from app.schemas.notification_schema import (
     UnreadCountSchema,
 )
 from app.schemas.user_schema import MessageSchema
-from app.utils.auth_helpers import get_current_user, get_current_user_id
+from app.services.cache import cache, invalidate_unread_count
+from app.services.notifications import get_unread_count
+from app.utils.auth_helpers import get_current_user_id
 
 blp = Blueprint(
     "notifications",
@@ -45,10 +47,9 @@ class UnreadCount(MethodView):
     @jwt_required()
     @blp.response(200, UnreadCountSchema)
     def get(self):
-        """Get count of unread notifications."""
+        """Get count of unread notifications (Redis-cached)."""
         user_id = get_current_user_id()
-        count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
-        return {"count": count}
+        return {"count": get_unread_count(user_id)}
 
 
 @blp.route("/<int:notification_id>/read")
@@ -64,6 +65,7 @@ class MarkNotificationRead(MethodView):
         ).first_or_404()
         notification.is_read = True
         db.session.commit()
+        invalidate_unread_count(user_id)
         return notification
 
 
@@ -78,6 +80,7 @@ class MarkAllRead(MethodView):
             {"is_read": True}
         )
         db.session.commit()
+        invalidate_unread_count(user_id)
         return {"message": "All notifications marked as read."}
 
 
@@ -88,11 +91,23 @@ class NotificationStream(MethodView):
         """Real-time notification stream via Server-Sent Events (SSE)."""
         user_id = get_current_user_id()
         last_id = 0
+        redis_client = cache._redis
+        pubsub = redis_client.pubsub() if redis_client is not None else None
+        if pubsub is not None:
+            pubsub.subscribe(f"taskflow:notifications:{user_id}")
 
         def event_stream():
             nonlocal last_id
             yield ": connected\n\n"
             while True:
+                if pubsub is not None:
+                    message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                    if message and message.get("data"):
+                        payload = json.loads(message["data"])
+                        last_id = max(last_id, payload.get("id", last_id))
+                        yield f"data: {json.dumps(payload)}\n\n"
+                        continue
+
                 new_notifications = (
                     Notification.query.filter(
                         Notification.user_id == user_id,
@@ -117,7 +132,7 @@ class NotificationStream(MethodView):
                     }
                     yield f"data: {json.dumps(payload)}\n\n"
 
-                time.sleep(2)
+                time.sleep(2 if pubsub is None else 0.5)
 
         return Response(
             stream_with_context(event_stream()),
