@@ -4,6 +4,7 @@ from flask_smorest import Blueprint
 
 from app.extensions import db
 from app.models.user import User
+from app.schemas.commerce_schema import UpdateSelfUserSchema
 from app.schemas.user_schema import UserSchema
 from app.support.errors import SupportAPIError
 from app.support.models import NotificationPreference, SupportNotification
@@ -26,6 +27,37 @@ class CurrentUser(MethodView):
     def get(self):
         """Get the currently authenticated user."""
         return get_current_user()
+
+    @jwt_required()
+    @blp.arguments(UpdateSelfUserSchema)
+    @blp.response(200, UserSchema)
+    def put(self, data):
+        """Update current user profile."""
+        user = get_current_user()
+        if "name" in data and data["name"]:
+            user.name = data["name"].strip()
+        if "email" in data and data["email"]:
+            email = data["email"].lower().strip()
+            existing = User.query.filter(User.email == email, User.id != user.id).first()
+            if existing:
+                raise SupportAPIError(
+                    "Email already in use.",
+                    "CONFLICT",
+                    409,
+                    {"email": ["An account with this email already exists."]},
+                )
+            user.email = email
+        db.session.commit()
+        return user
+
+    @jwt_required()
+    @blp.response(204)
+    def delete(self):
+        """Deactivate current user account."""
+        user = get_current_user()
+        user.is_active = False
+        db.session.commit()
+        return ""
 
 
 @blp.route("/")
