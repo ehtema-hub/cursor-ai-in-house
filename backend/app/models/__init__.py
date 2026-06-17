@@ -1,4 +1,6 @@
 from app.models.notification import Notification
+from app.models.order import Order, OrderItem
+from app.models.product import Product
 from app.models.project import Project, ProjectMember
 from app.models.task import Task
 from app.models.user import User
@@ -19,6 +21,9 @@ __all__ = [
     "ProjectMember",
     "Task",
     "Notification",
+    "Product",
+    "Order",
+    "OrderItem",
     "SupportTicket",
     "TicketComment",
     "TicketAssignment",

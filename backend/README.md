@@ -173,6 +173,14 @@ python -m tests.unittest.ecommerce.run_suite -v
 
 See `tests/ECOMMERCE_CHECKOUT_TEST_CASES.md` for the full CHK-* specification.
 
+### REST API suite (users, products, orders)
+
+```bash
+pytest tests/test_rest_api_suite.py -v
+```
+
+See `tests/REST_API_TEST_SUITE.md` for endpoint and test coverage details.
+
 ## Project Structure
 
 ```
