@@ -1,0 +1,18 @@
+{
+  "lighthouse": {
+    "performance": 65,
+    "accessibility": 85,
+    "bestPractices": 80,
+    "seo": 70
+  },
+  "k6": {
+    "p95Ms": 500,
+    "failedRate": 0.01,
+    "vus": 10,
+    "duration": "30s"
+  },
+  "apiSmoke": {
+    "avgMs": 500,
+    "requests": 20
+  }
+}

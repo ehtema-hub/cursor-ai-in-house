@@ -55,6 +55,7 @@ jobs:
           filters: |
             frontend:
               - 'src/**'
+              - 'qa-automation/tests/e2e/**'
               - 'e2e/**'
               - 'public/**'
               - 'index.html'
@@ -321,7 +322,7 @@ jobs:
             playwright-${{ runner.os }}-
       - run: npx playwright install --with-deps chromium
       - name: E2E shard ${{ matrix.shard }}/2
-        run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/2
+        run: npx playwright test --config qa-automation/tests/e2e/playwright.config.ts --project=chromium --shard=${{ matrix.shard }}/2
         env:
           CI: true
       - uses: actions/upload-artifact@v4

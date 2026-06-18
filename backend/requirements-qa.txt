@@ -1,0 +1,4 @@
+# QA tooling (install with: pip install -r requirements-qa.txt)
+pylint>=3.2.0,<4.0.0
+bandit>=1.7.0,<2.0.0
+pip-audit>=2.7.0,<3.0.0

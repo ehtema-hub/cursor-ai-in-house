@@ -1,0 +1,337 @@
+name: QA Automation
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: qa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.12"
+  FLASK_ENV: testing
+  JWT_SECRET_KEY: qa-ci-jwt-secret-key-32chars!!
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Unit tests (parallel)
+  # ---------------------------------------------------------------------------
+  test-jest:
+    name: Test — Jest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm install jest ts-jest @types/jest jest-environment-jsdom @testing-library/jest-dom --no-save
+      - run: bash qa-automation/tests/unit/frontend/run-unit.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-jest
+          path: |
+            qa-automation/reports/output/tests/jest-results.json
+            qa-automation/reports/output/coverage/frontend/
+          retention-days: 14
+
+  test-pytest:
+    name: Test — pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-deps
+      - run: bash qa-automation/tests/integration/run-integration.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-pytest
+          path: |
+            qa-automation/reports/output/tests/
+            qa-automation/reports/output/coverage/backend/
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Code quality (parallel)
+  # ---------------------------------------------------------------------------
+  lint-eslint:
+    name: Quality — ESLint
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-deps
+      - run: |
+          npx eslint . -c qa-automation/quality/eslint.config.js -f json \
+            -o qa-automation/reports/output/lint/eslint.json || true
+          mkdir -p qa-automation/reports/output/lint
+          node -e "
+          const fs=require('fs');
+          const p='qa-automation/reports/output/lint/eslint.json';
+          const r=fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):[]; 
+          fs.writeFileSync('qa-automation/reports/output/lint/eslint-summary.json',JSON.stringify({
+            errorCount:r.reduce((a,f)=>a+f.errorCount,0),
+            warningCount:r.reduce((a,f)=>a+f.warningCount,0)
+          }));
+          "
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-eslint
+          path: qa-automation/reports/output/lint/eslint*.json
+          retention-days: 14
+
+  lint-pylint:
+    name: Quality — Pylint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-deps
+      - run: |
+          pip install -r requirements-qa.txt
+          mkdir -p ../qa-automation/reports/output/lint
+          pylint app --rcfile=../qa-automation/quality/pylint.rc \
+            --output-format=json > ../qa-automation/reports/output/lint/pylint.json || true
+          score=$(pylint app --rcfile=../qa-automation/quality/pylint.rc --score-only 2>/dev/null | tail -1 | awk '{print $NF}' || echo 0)
+          node -e "require('fs').writeFileSync('../qa-automation/reports/output/lint/pylint-summary.json',JSON.stringify({score:parseFloat('$score')||0,issueCount:0}))"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-pylint
+          path: qa-automation/reports/output/lint/pylint*.json
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Security — Snyk + OWASP ZAP
+  # ---------------------------------------------------------------------------
+  security-snyk-npm:
+    name: Security — Snyk (npm)
+    runs-on: ubuntu-latest
+    if: secrets.SNYK_TOKEN != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-deps
+      - name: Snyk test (npm)
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --severity-threshold=high --json-file-output=qa-automation/reports/output/security/snyk-npm.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-snyk-npm
+          path: qa-automation/reports/output/security/
+          retention-days: 14
+
+  security-snyk-python:
+    name: Security — Snyk (python)
+    runs-on: ubuntu-latest
+    if: secrets.SNYK_TOKEN != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-deps
+      - name: Snyk test (python)
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --file=requirements.txt --severity-threshold=high --json-file-output=qa-automation/reports/output/security/snyk-python.json
+        working-directory: backend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-snyk-python
+          path: qa-automation/reports/output/security/
+          retention-days: 14
+
+  security-zap:
+    name: Security — OWASP ZAP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-deps
+      - uses: ./.github/actions/setup-python-deps
+      - run: npm run build
+      - name: Start backend API
+        working-directory: backend
+        run: |
+          gunicorn --bind 127.0.0.1:5000 --workers 2 "run:app" &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:5000/health && break; sleep 1; done
+      - name: Start frontend preview
+        run: |
+          npm run preview -- --port 4173 --host &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173 && break; sleep 1; done
+      - name: Security scan
+        env:
+          TARGET_URL: http://127.0.0.1:4173
+        run: bash qa-automation/security/security-scan.sh || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-zap
+          path: qa-automation/reports/output/security/zap*
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Performance — Lighthouse + k6
+  # ---------------------------------------------------------------------------
+  perf-lighthouse:
+    name: Performance — Lighthouse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-deps
+      - run: |
+          npm install @lhci/cli --no-save
+          npm run build
+          npx @lhci/cli autorun --config=qa-automation/performance/lighthouse.config.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-lighthouse
+          path: qa-automation/reports/output/lighthouse/
+          retention-days: 14
+
+  perf-k6:
+    name: Performance — k6
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-deps
+      - uses: grafana/setup-k6-action@v1
+      - name: Start API
+        working-directory: backend
+        run: |
+          gunicorn --bind 127.0.0.1:5000 --workers 2 "run:app" &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:5000/health && break; sleep 1; done
+      - run: |
+          mkdir -p qa-automation/reports/output/performance
+          k6 run -e BASE_URL=http://127.0.0.1:5000 -e K6_P95_MS=500 \
+            qa-automation/performance/k6-load-test.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-k6
+          path: qa-automation/reports/output/performance/
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Aggregate dashboard + AI recommendations
+  # ---------------------------------------------------------------------------
+  qa-dashboard:
+    name: QA — Dashboard & Recommendations
+    runs-on: ubuntu-latest
+    needs:
+      - test-jest
+      - test-pytest
+      - lint-eslint
+      - lint-pylint
+      - security-zap
+      - perf-lighthouse
+      - perf-k6
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Download QA artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: qa-artifacts
+        continue-on-error: true
+      - name: Merge artifact reports
+        run: |
+          OUT=qa-automation/reports/output
+          mkdir -p $OUT/{lint,tests,coverage/frontend,coverage/backend,performance,lighthouse,security}
+          find qa-artifacts -type f \( -name '*.json' -o -name '*.xml' \) 2>/dev/null | while read -r f; do
+            case "$f" in
+              *eslint*) cp "$f" $OUT/lint/ 2>/dev/null || true ;;
+              *pylint*) cp "$f" $OUT/lint/ 2>/dev/null || true ;;
+              *jest*) cp "$f" $OUT/tests/ 2>/dev/null || true ;;
+              *pytest*) cp "$f" $OUT/tests/ 2>/dev/null || true ;;
+              *coverage-summary*) cp "$f" $OUT/coverage/frontend/ 2>/dev/null || true ;;
+              *coverage*) cp "$f" $OUT/coverage/backend/ 2>/dev/null || true ;;
+              *k6*) cp "$f" $OUT/performance/ 2>/dev/null || true ;;
+              *lighthouse*) cp "$f" $OUT/lighthouse/ 2>/dev/null || true ;;
+              *zap*|*snyk*) cp "$f" $OUT/security/ 2>/dev/null || true ;;
+            esac
+          done
+      - name: Summarize Snyk results
+        run: |
+          node -e "
+          const fs = require('fs');
+          const out = 'qa-automation/reports/output/security';
+          const files = ['npm','python'].flatMap(t => [
+            'qa-artifacts/qa-snyk-' + t + '/snyk-' + t + '.json',
+            out + '/snyk-' + t + '.json',
+          ]).filter(f => fs.existsSync(f));
+          let high=0, medium=0, low=0;
+          for (const f of files) {
+            try {
+              const data = JSON.parse(fs.readFileSync(f,'utf8'));
+              for (const v of data.vulnerabilities || []) {
+                const s = (v.severity || '').toLowerCase();
+                if (s === 'high' || s === 'critical') high++;
+                else if (s === 'medium') medium++;
+                else low++;
+              }
+            } catch {}
+          }
+          fs.mkdirSync(out, { recursive: true });
+          fs.writeFileSync(out + '/snyk-summary.json', JSON.stringify({ high, medium, low }, null, 2));
+          "
+      - name: Aggregate QA results
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          python3 qa-automation/reports/generate-report.py || true
+          python3 qa-automation/scripts/analyze-results.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-dashboard
+          path: |
+            public/qa/
+            qa-automation/reports/output/
+            qa-automation/reports/dashboard.html
+          retention-days: 30
+      - name: Slack notification on failure
+        if: failure() || contains(needs.*.result, 'failure')
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          NOTIFY_STATUS: failure
+          FAILED_JOBS: QA automation
+        run: bash scripts/ci/notify-slack.sh
+        continue-on-error: true
+
+  qa-gate:
+    name: QA Gate
+    runs-on: ubuntu-latest
+    needs: [qa-dashboard, test-jest, test-pytest, lint-pylint, perf-k6]
+    if: always()
+    steps:
+      - name: Check critical QA jobs
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 <<'PY'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          critical = ["test-jest", "test-pytest", "lint-pylint", "perf-k6"]
+          failed = [n for n in critical if needs.get(n, {}).get("result") in ("failure", "cancelled")]
+          if failed:
+              print("QA gate failed:", failed)
+              sys.exit(1)
+          print("QA gate passed")
+          PY

@@ -1,0 +1,2 @@
+# Pylint config moved to qa-automation/quality/pylint.rc
+# Usage: pylint app --rcfile=../qa-automation/quality/pylint.rc
