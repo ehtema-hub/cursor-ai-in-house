@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-06-18T08:56:16.136861+00:00",
+  "basedOn": "2026-06-18T08:56:16.073412+00:00",
+  "overallStatus": "warn",
+  "recommendationCount": 5,
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "testing",
+      "title": "Increase frontend unit test coverage",
+      "detail": "Jest coverage is 0%. Target \u226570% on src/lib.",
+      "impact": "Higher confidence in refactors and faster feedback than E2E alone."
+    },
+    {
+      "priority": "high",
+      "category": "testing",
+      "title": "Expand backend pytest coverage",
+      "detail": "Backend coverage is 0%. Add tests under qa-automation/tests/integration/.",
+      "impact": "Reduces API regression risk and speeds up release cycles."
+    },
+    {
+      "priority": "high",
+      "category": "performance",
+      "title": "Optimize Lighthouse performance score",
+      "detail": "Lighthouse performance is 0/100.",
+      "impact": "Faster page loads improve conversion and SEO."
+    },
+    {
+      "priority": "medium",
+      "category": "quality",
+      "title": "Improve Pylint score",
+      "detail": "Pylint score 0/10. See qa-automation/quality/pylint.rc.",
+      "impact": "Better maintainability for Python contributors."
+    },
+    {
+      "priority": "medium",
+      "category": "accessibility",
+      "title": "Address accessibility gaps",
+      "detail": "Lighthouse a11y score is 0/100.",
+      "impact": "WCAG compliance and better UX for all users."
+    }
+  ]
+}

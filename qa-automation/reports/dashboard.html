@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QA Quality Dashboard</title>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --pass: #22c55e; --fail: #ef4444; --warn: #f59e0b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; }
+    h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 2rem; }
+    .banner { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 2rem; }
+    .badge { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .badge.pass { background: #14532d; color: var(--pass); }
+    .badge.fail { background: #450a0a; color: var(--fail); }
+    .badge.warn { background: #451a03; color: var(--warn); }
+    .badge.unknown { background: #334155; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card { background: var(--card); border-radius: 0.75rem; padding: 1.25rem; border: 1px solid #334155; }
+    .card h3 { font-size: 1rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+    .card p { color: var(--muted); font-size: 0.875rem; line-height: 1.5; }
+    .rec { border-left: 4px solid var(--muted); padding: 1rem; margin-bottom: 0.75rem; background: var(--card); border-radius: 0 0.5rem 0.5rem 0; }
+    .rec.critical { border-color: var(--fail); }
+    .rec.high { border-color: #f97316; }
+    .rec.medium { border-color: var(--warn); }
+    .rec.low { border-color: #3b82f6; }
+    .rec h4 { margin-bottom: 0.5rem; }
+    .meta { font-size: 0.8rem; color: var(--muted); }
+    section h2 { margin-bottom: 1rem; font-size: 1.25rem; }
+  </style>
+</head>
+<body>
+  <h1>QA Quality Dashboard</h1>
+  <p class="subtitle">Unified test, lint, security, and performance reporting</p>
+  <div class="banner" id="banner"></div>
+  <div class="grid" id="metrics"></div>
+  <section>
+    <h2>AI Improvement Recommendations</h2>
+    <div id="recommendations"></div>
+  </section>
+  <script>
+    async function load() {
+      const [summaryRes, recsRes] = await Promise.all([
+        fetch('output/summary.json').catch(() => fetch('/qa/summary.json')),
+        fetch('output/recommendations.json').catch(() => fetch('/qa/recommendations.json')),
+      ])
+      const summary = summaryRes.ok ? await summaryRes.json() : null
+      const recs = recsRes.ok ? await recsRes.json() : null
+
+      const banner = document.getElementById('banner')
+      if (summary) {
+        banner.innerHTML = `
+          <span class="badge ${summary.overallStatus}">${summary.overallStatus}</span>
+          <span class="meta">Branch: ${summary.branch} · Commit: ${summary.commit} · ${new Date(summary.timestamp).toLocaleString()}</span>
+        `
+        const cards = [
+          ['Frontend (Jest)', summary.gates.unit_frontend, g => `${g.passed}/${g.total} passed · ${g.coverage}% coverage`],
+          ['Backend (pytest)', summary.gates.unit_backend, g => `${g.coverage}% coverage`],
+          ['Code Quality', summary.gates.lint, g => `ESLint ${g.eslintErrors}E/${g.eslintWarnings}W · Pylint ${g.pylintScore}/10`],
+          ['Performance', summary.gates.performance, g => `LH perf ${g.lighthousePerformance} · k6 p95 ${g.k6P95Ms ?? 'n/a'}ms`],
+          ['Security', summary.gates.security, g => `ZAP H:${g.zapHigh} Snyk H:${g.snykHigh}`],
+        ]
+        document.getElementById('metrics').innerHTML = cards.map(([title, gate, fmt]) => `
+          <div class="card">
+            <h3>${title} <span class="badge ${gate.status}">${gate.status}</span></h3>
+            <p>${fmt(gate)}</p>
+          </div>
+        `).join('')
+      } else {
+        banner.innerHTML = '<span class="badge unknown">No data</span><span class="meta">Run qa-automation/scripts/run-all-qa.sh</span>'
+      }
+
+      const el = document.getElementById('recommendations')
+      if (recs?.recommendations?.length) {
+        el.innerHTML = recs.recommendations.map(r => `
+          <div class="rec ${r.priority}">
+            <h4>[${r.priority.toUpperCase()}] ${r.title}</h4>
+            <p>${r.detail}</p>
+            <p class="meta" style="margin-top:0.5rem">Impact: ${r.impact}</p>
+          </div>
+        `).join('')
+      } else {
+        el.innerHTML = '<p class="meta">No recommendations yet.</p>'
+      }
+    }
+    load()
+  </script>
+</body>
+</html>
