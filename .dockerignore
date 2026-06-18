@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.github
+e2e
+playwright-report
+test-results
+*.md
+.env
+.env.*
+backend/.venv
+backend/__pycache__
+backend/**/__pycache__
+backend/.pytest_cache
+backend/htmlcov
+blog-api/.venv
+**/*.pyc
