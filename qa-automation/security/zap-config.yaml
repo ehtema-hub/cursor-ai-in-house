@@ -1,0 +1,21 @@
+# OWASP ZAP baseline scan configuration
+env:
+  contexts:
+    - name: default
+      urls:
+        - ${TARGET_URL:-http://127.0.0.1:4173}
+      includePaths:
+        - ${TARGET_URL:-http://127.0.0.1:4173}.*
+  parameters:
+    failOnHigh: true
+    failOnMedium: false
+    reportDir: qa-automation/reports/output/security
+    reportFormats:
+      - json
+      - html
+jobs:
+  - type: baseline
+    parameters:
+      apiScan: false
+      ajaxSpider: false
+      maxDuration: 10

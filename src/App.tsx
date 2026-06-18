@@ -5,16 +5,17 @@ import { ProductCardDemo } from '@/pages/ProductCardDemo'
 import { UserProfileDemo } from '@/pages/UserProfileDemo'
 import { TaskDashboard } from '@/pages/TaskDashboard'
 import { AnalyticsDashboard } from '@/pages/AnalyticsDashboard'
+import { QADashboard } from '@/pages/QADashboard'
 import { FeedPage } from '@/pages/FeedPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 
-type DemoPage = 'tasks' | 'analytics' | 'products' | 'profiles' | 'feed'
+type DemoPage = 'tasks' | 'analytics' | 'products' | 'profiles' | 'feed' | 'qa'
 type AuthView = 'login' | 'register'
 
 const getPageFromHash = (): DemoPage => {
   const hash = window.location.hash.replace('#', '')
-  if (['tasks', 'analytics', 'products', 'profiles', 'feed'].includes(hash)) {
+  if (['tasks', 'analytics', 'products', 'profiles', 'feed', 'qa'].includes(hash)) {
     return hash as DemoPage
   }
   return 'tasks' // Default to tasks for authentication flow
@@ -87,6 +88,15 @@ function App() {
       onClick: (event) => {
         event.preventDefault()
         handlePageChange('analytics')
+      },
+    },
+    {
+      label: 'QA',
+      href: '#qa',
+      isActive: page === 'qa',
+      onClick: (event) => {
+        event.preventDefault()
+        handlePageChange('qa')
       },
     },
   ]
@@ -164,6 +174,10 @@ function App() {
 
       {page === 'analytics' && (
         <AnalyticsDashboard onNavigateAway={() => handlePageChange('tasks')} />
+      )}
+
+      {page === 'qa' && (
+        <QADashboard onNavigateAway={() => handlePageChange('tasks')} />
       )}
 
       {page === 'feed' && <FeedPage />}

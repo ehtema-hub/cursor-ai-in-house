@@ -1,0 +1,33 @@
+[MASTER]
+ignore=tests,migrations,.venv,htmlcov,qa-automation
+jobs=0
+py-version=3.12
+rcfile=qa-automation/quality/pylint.rc
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    duplicate-code,
+    import-outside-toplevel,
+    broad-exception-caught
+
+[FORMAT]
+max-line-length=100
+
+[DESIGN]
+max-args=8
+max-attributes=12
+
+[REPORTS]
+output-format=text
+score=yes
+
+[BASIC]
+good-names=i,j,k,db,id,_
