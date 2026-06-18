@@ -45,3 +45,5 @@ backend/.mypy_cache/
 qa-reports/
 qa-automation/reports/output/*
 !qa-automation/reports/output/.gitkeep
+qa-suite/reporting/output/*
+!qa-suite/reporting/output/.gitkeep

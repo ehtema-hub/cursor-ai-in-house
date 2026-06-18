@@ -1,0 +1,15 @@
+# OWASP ZAP baseline configuration
+env:
+  contexts:
+    - name: default
+      urls:
+        - ${TARGET_URL:-http://127.0.0.1:4173}
+  parameters:
+    failOnHigh: true
+    failOnCritical: true
+    reportDir: qa-suite/reporting/output/security
+jobs:
+  - type: baseline
+    parameters:
+      maxDuration: 15
+      apiScan: false
