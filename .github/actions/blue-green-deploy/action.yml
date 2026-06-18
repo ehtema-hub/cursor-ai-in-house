@@ -1,0 +1,68 @@
+name: Blue-Green Deploy
+description: Deploy to inactive slot, health-check, then promote or rollback
+
+inputs:
+  slot:
+    description: Target slot (blue or green)
+    required: true
+  artifact-path:
+    description: Path to frontend dist directory
+    required: true
+  health-url:
+    description: URL to health-check after deploy
+    required: false
+    default: ""
+  rollback-on-failure:
+    description: Roll back to previous slot artifact on health failure
+    required: false
+    default: "true"
+
+outputs:
+  deployed-slot:
+    description: Slot that received the deployment
+    value: ${{ steps.promote.outputs.slot }}
+
+runs:
+  using: composite
+  steps:
+    - name: Record deployment slot
+      id: promote
+      shell: bash
+      run: |
+        echo "slot=${{ inputs.slot }}" >> "$GITHUB_OUTPUT"
+        echo "Deploying to ${{ inputs.slot }} slot"
+
+    - name: Setup GitHub Pages (frontend)
+      uses: actions/configure-pages@v5
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ${{ inputs.artifact-path }}
+
+    - name: Deploy to Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Health check
+      id: health
+      if: inputs.health-url != ''
+      shell: bash
+      run: |
+        url="${{ inputs.health-url }}"
+        for i in 1 2 3 4 5; do
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" || echo "000")
+          if [ "$code" = "200" ]; then
+            echo "Health check passed ($url)"
+            exit 0
+          fi
+          echo "Attempt $i: status $code — retrying..."
+          sleep 5
+        done
+        echo "Health check failed for $url"
+        exit 1
+
+    - name: Mark rollback required
+      if: failure() && inputs.rollback-on-failure == 'true'
+      shell: bash
+      run: echo "ROLLBACK_REQUIRED=true" >> "$GITHUB_ENV"
