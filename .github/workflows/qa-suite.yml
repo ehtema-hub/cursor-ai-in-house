@@ -1,0 +1,66 @@
+name: QA Suite (DevSecOps)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: qa-suite-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.12"
+  FLASK_ENV: testing
+  JWT_SECRET_KEY: qa-suite-ci-jwt-secret-key-32chars!!
+  CI: true
+
+jobs:
+  qa-suite:
+    name: QA Suite Pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          pip install -r backend/requirements.txt -r backend/requirements-qa.txt
+          pip install radon pylint gunicorn
+          npx playwright install --with-deps chromium
+
+      - name: Run QA Suite
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: bash qa-suite/run_qa_suite.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-suite-dashboard
+          path: |
+            qa-suite/reporting/output/
+          retention-days: 30
+
+      - name: Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          NOTIFY_STATUS: failure
+          FAILED_JOBS: QA Suite
+        run: bash scripts/ci/notify-slack.sh
+        continue-on-error: true

@@ -19,8 +19,12 @@
     "qa": "bash qa-automation/scripts/run-all-qa.sh",
     "qa:report": "python3 qa-automation/reports/generate-report.py",
     "qa:analyze": "python3 qa-automation/scripts/analyze-results.py",
-    "qa:security": "bash qa-automation/security/security-scan.sh",
-    "qa:perf": "npx @lhci/cli autorun --config=qa-automation/performance/lighthouse.config.js"
+    "qa:suite": "bash qa-suite/run_qa_suite.sh",
+    "qa:ui": "bash qa-suite/ui-tests/run-ui-tests.sh",
+    "qa:lint": "bash qa-suite/code-quality/run-lint.sh",
+    "qa:security": "bash qa-suite/security/run-security.sh",
+    "qa:perf": "bash qa-suite/performance/run-k6.sh",
+    "qa:dashboard": "python3 qa-suite/reporting/generate-dashboard.py"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
