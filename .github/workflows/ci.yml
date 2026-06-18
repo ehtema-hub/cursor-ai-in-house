@@ -13,6 +13,11 @@ on:
         default: green
         type: choice
         options: [blue, green]
+      force_full:
+        description: Run all jobs regardless of changed paths
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,54 +37,133 @@ permissions:
 
 jobs:
   # ===========================================================================
-  # Bottleneck fix: security + builds start in parallel (was sequential gates)
+  # Path filter — skip unrelated jobs on PRs (~50% savings on focused changes)
   # ===========================================================================
-
-  security-dependencies:
-    name: Security — Dependency audit
+  detect-changes:
+    name: Detect changed paths
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - ecosystem: npm
-            path: .
-          - ecosystem: pip
-            path: backend
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      docker: ${{ steps.filter.outputs.docker }}
+      all: ${{ steps.filter.outputs.all }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: npm audit
-        if: matrix.ecosystem == 'npm'
-        uses: actions/setup-node@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - run: npm ci
-        if: matrix.ecosystem == 'npm'
-      - name: Run npm audit (high+)
-        if: matrix.ecosystem == 'npm'
-        run: npm audit --audit-level=high
-        continue-on-error: false
+          filters: |
+            frontend:
+              - 'src/**'
+              - 'e2e/**'
+              - 'public/**'
+              - 'index.html'
+              - 'package*.json'
+              - 'playwright.config.ts'
+              - 'vite.config.ts'
+              - 'tsconfig*.json'
+              - 'Dockerfile'
+              - 'docker/**'
+            backend:
+              - 'backend/**'
+            docker:
+              - 'Dockerfile'
+              - 'backend/Dockerfile'
+              - 'docker/**'
+              - '.dockerignore'
+            all:
+              - '**'
 
-      - name: pip-audit
-        if: matrix.ecosystem == 'pip'
-        uses: actions/setup-python@v5
+  # ---------------------------------------------------------------------------
+  # Security (parallel — npm audit + Snyk + pip-audit + Bandit)
+  # ---------------------------------------------------------------------------
+  security-npm:
+    name: Security — npm audit
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.frontend == 'true' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-deps
+      - name: npm audit (high+)
+        run: npm audit --audit-level=high
+
+  security-snyk-npm:
+    name: Security — Snyk (npm)
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      secrets.SNYK_TOKEN != '' && (
+        needs.detect-changes.outputs.frontend == 'true' ||
+        github.ref == 'refs/heads/main'
+      )
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-deps
+      - name: Snyk test (npm)
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --severity-threshold=high
+
+  security-snyk-python:
+    name: Security — Snyk (python)
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      secrets.SNYK_TOKEN != '' && (
+        needs.detect-changes.outputs.backend == 'true' ||
+        github.ref == 'refs/heads/main'
+      )
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: backend/requirements.txt
-      - name: Install pip-audit
-        if: matrix.ecosystem == 'pip'
-        run: pip install pip-audit
+      - name: Snyk test (python)
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --file=backend/requirements.txt --severity-threshold=high
+
+  security-python:
+    name: Security — pip-audit
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install pip-audit
       - name: Audit Python dependencies
-        if: matrix.ecosystem == 'pip'
         working-directory: backend
         run: pip-audit -r requirements.txt
 
   security-sast-bandit:
     name: Security — SAST (Bandit)
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -89,23 +173,97 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - run: pip install bandit
       - name: Bandit scan (backend)
-        run: bandit -r backend/app -ll -q -f json -o bandit-report.json || true
-      - name: Fail on high severity
         run: bandit -r backend/app -lll -q
 
   # ---------------------------------------------------------------------------
-  # Stage 1: Build (parallel)
+  # Docker build with GHA layer cache (parallel matrix)
+  # ---------------------------------------------------------------------------
+  docker-build:
+    name: Docker — Build (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.docker == 'true' ||
+      needs.detect-changes.outputs.frontend == 'true' ||
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: frontend
+            context: .
+            file: Dockerfile
+            tag: cursor-frontend:ci
+          - name: backend
+            context: backend
+            file: backend/Dockerfile
+            tag: cursor-backend:ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image with layer cache
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          load: true
+          tags: ${{ matrix.tag }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  docker-smoke:
+    name: Docker — Health smoke (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: needs.docker-build.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: frontend
+            image: cursor-frontend:ci
+            port: 8080
+            health_path: /health
+          - name: backend
+            image: cursor-backend:ci
+            port: 5000
+            health_path: /health
+    steps:
+      - name: Run container health check
+        run: |
+          docker run -d --name smoke-${{ matrix.name }} \
+            -e FLASK_ENV=testing \
+            -e JWT_SECRET_KEY=ci-docker-smoke-secret-32chars!! \
+            -p ${{ matrix.port }}:${{ matrix.port == 8080 && 80 || 5000 }} \
+            ${{ matrix.image }}
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${{ matrix.port }}${{ matrix.health_path }}" || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "Docker health check passed (${{ matrix.name }})"
+              docker logs smoke-${{ matrix.name }}
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs smoke-${{ matrix.name }}
+          echo "Docker health check failed (${{ matrix.name }})"
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # Build artifacts (parallel with security + docker)
   # ---------------------------------------------------------------------------
   frontend-build:
     name: Build — Frontend
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.frontend == 'true' ||
+      github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-node-deps
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
@@ -117,20 +275,15 @@ jobs:
   backend-build:
     name: Build — Backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-      - run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - run: python -c "from app import create_app; create_app('testing')"
+      - uses: ./.github/actions/setup-python-deps
+      - working-directory: backend
+        run: python -c "from app import create_app; create_app('testing')"
       - uses: actions/upload-artifact@v4
         with:
           name: backend-app
@@ -143,18 +296,22 @@ jobs:
           retention-days: 14
 
   # ---------------------------------------------------------------------------
-  # Stage 2: Test (parallel shards — bottleneck fix: single pytest job ~2min)
+  # Tests — parallel shards (Playwright 2×, pytest 3×)
   # ---------------------------------------------------------------------------
   frontend-test:
-    name: Test — Frontend E2E
+    name: Test — E2E shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.frontend == 'true' ||
+      github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-node-deps
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
@@ -163,20 +320,24 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
       - run: npx playwright install --with-deps chromium
-      - name: E2E (parallel workers in CI)
-        run: npm run test:e2e:chromium
+      - name: E2E shard ${{ matrix.shard }}/2
+        run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/2
         env:
           CI: true
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
 
   backend-test:
     name: Test — Backend (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.ref == 'refs/heads/main'
     strategy:
       fail-fast: false
       matrix:
@@ -193,14 +354,7 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-      - run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - uses: ./.github/actions/setup-python-deps
       - name: Run pytest shard
         env:
           FLASK_ENV: testing
@@ -210,20 +364,17 @@ jobs:
   performance-test:
     name: Test — Performance
     runs-on: ubuntu-latest
-    needs: [backend-build]
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.ref == 'refs/heads/main'
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-      - run: |
-          pip install -r requirements.txt
-          pip install gunicorn
+      - uses: ./.github/actions/setup-python-deps
+      - run: pip install gunicorn
       - name: Start API server
         env:
           FLASK_ENV: testing
@@ -238,24 +389,45 @@ jobs:
         run: bash ../scripts/ci/performance-test.sh http://127.0.0.1:5000
 
   # ---------------------------------------------------------------------------
-  # CI gate — all quality checks must pass before deploy
+  # CI gate
   # ---------------------------------------------------------------------------
   ci-gate:
     name: CI Gate
     runs-on: ubuntu-latest
     needs:
-      - security-dependencies
+      - detect-changes
+      - security-npm
+      - security-snyk-npm
+      - security-snyk-python
+      - security-python
       - security-sast-bandit
+      - docker-build
+      - docker-smoke
       - frontend-build
       - backend-build
       - frontend-test
       - backend-test
       - performance-test
+    if: always()
     steps:
-      - run: echo "All build, security, and test jobs passed."
+      - name: Verify job results
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 <<'PY'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          allowed = {"success", "skipped"}
+          failed = {name: job["result"] for name, job in needs.items()
+                    if job.get("result") not in allowed}
+          if failed:
+              print("CI gate failed:", failed)
+              sys.exit(1)
+          print("All required jobs passed or were skipped appropriately.")
+          PY
 
   # ---------------------------------------------------------------------------
-  # Stage 3: Blue-green deploy + rollback + monitoring
+  # Blue-green deploy + health checks + rollback
   # ---------------------------------------------------------------------------
   deploy-snapshot:
     name: Deploy — Save rollback snapshot
@@ -263,8 +435,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [ci-gate]
     steps:
-      - name: Download previous production snapshot (for rollback)
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: production-snapshot
         continue-on-error: true
@@ -330,23 +501,10 @@ jobs:
       url: ${{ needs.deploy-green.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Smoke test deployed frontend
-        run: |
-          URL="${{ needs.deploy-green.outputs.page_url }}"
-          if [ -z "$URL" ]; then
-            echo "No deployment URL — skipping URL check"
-            exit 0
-          fi
-          for i in 1 2 3 4 5; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL" || echo "000")
-            if [ "$code" = "200" ]; then
-              echo "Production health check passed"
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "Production health check failed"
-          exit 1
+      - name: Production health checks
+        env:
+          DEPLOY_URL: ${{ needs.deploy-green.outputs.page_url }}
+        run: bash scripts/ci/deploy-health-check.sh
       - uses: actions/download-artifact@v4
         with:
           name: frontend-dist
@@ -409,3 +567,47 @@ jobs:
           DEPLOY_STATUS: failure
           DEPLOY_SLOT: blue
         run: bash scripts/ci/notify-monitoring.sh
+
+  # ---------------------------------------------------------------------------
+  # Slack notifications on failure
+  # ---------------------------------------------------------------------------
+  notify-slack:
+    name: Notify — Slack
+    runs-on: ubuntu-latest
+    needs:
+      - ci-gate
+      - security-npm
+      - security-snyk-npm
+      - security-snyk-python
+      - security-python
+      - security-sast-bandit
+      - docker-build
+      - docker-smoke
+      - frontend-build
+      - backend-build
+      - frontend-test
+      - backend-test
+      - performance-test
+      - deploy-green
+      - deploy-health-check
+      - rollback
+    if: always() && contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect failed jobs
+        id: failed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          FAILED=$(python3 -c "
+          import json, os
+          needs = json.loads(os.environ['NEEDS_JSON'])
+          print(', '.join(k for k,v in needs.items() if v.get('result') in ('failure','cancelled')) or 'unknown')
+          ")
+          echo "jobs=$FAILED" >> "$GITHUB_OUTPUT"
+      - name: Send Slack alert
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          NOTIFY_STATUS: failure
+          FAILED_JOBS: ${{ steps.failed.outputs.jobs }}
+        run: bash scripts/ci/notify-slack.sh
