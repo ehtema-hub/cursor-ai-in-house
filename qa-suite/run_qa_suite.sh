@@ -58,7 +58,7 @@ start_services() {
   fi
   if ! curl -sf http://127.0.0.1:4173 >/dev/null 2>&1; then
     echo "Building and starting frontend preview on :4173..."
-    (cd "$ROOT" && npm run build && npm run preview -- --port 4173 --host) &
+    (cd "$ROOT/frontend" && npm run build && npm run preview -- --port 4173 --host) &
     PREVIEW_PID=$!
     for i in $(seq 1 60); do curl -sf http://127.0.0.1:4173 && break; sleep 2; done
   fi
