@@ -34,7 +34,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
@@ -52,7 +52,7 @@ jobs:
     name: Test — pytest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python-deps
       - run: bash qa-automation/tests/integration/run-integration.sh
       - uses: actions/upload-artifact@v4
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
@@ -101,7 +101,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python-deps
       - run: |
           pip install -r requirements-qa.txt
@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     if: secrets.SNYK_TOKEN != ''
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
@@ -147,7 +147,7 @@ jobs:
     runs-on: ubuntu-latest
     if: secrets.SNYK_TOKEN != ''
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python-deps
       - name: Snyk test (python)
         uses: snyk/actions/python@master
@@ -171,7 +171,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
@@ -207,7 +207,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
@@ -225,7 +225,7 @@ jobs:
     name: Performance — k6
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python-deps
       - uses: grafana/setup-k6-action@v1
       - name: Start API
@@ -259,7 +259,7 @@ jobs:
       - perf-k6
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
