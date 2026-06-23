@@ -1,4 +1,5 @@
 import importlib
+import os
 
 from flask import Flask, g
 
@@ -28,6 +29,21 @@ def create_app(config_name: str = "development") -> Flask:
     from app.blueprints.routes import register_blueprints
 
     register_blueprints(api)
+
+    if config_name == "testing":
+        with flask_app.app_context():
+            db.create_all()
+
+    @flask_app.route("/api/test/reset", methods=["POST"])
+    def reset_test_database():
+        """Reset database for integrated E2E runs (development only)."""
+        if flask_app.config.get("TESTING") or os.getenv("ALLOW_TEST_RESET") == "1":
+            db.drop_all()
+            db.create_all()
+            return {"message": "Database reset."}
+        from flask_smorest import abort
+
+        abort(404)
 
     @flask_app.before_request
     def apply_rate_limit():

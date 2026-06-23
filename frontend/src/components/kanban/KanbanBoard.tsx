@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Plus, Search, Filter } from 'lucide-react'
 import { BoardColumn } from './BoardColumn'
 import { AddTaskModal } from './AddTaskModal'
@@ -9,14 +9,10 @@ import {
   type KanbanTask,
 } from '@/types/kanban'
 import type { TaskStatus } from '@/data/sampleTasks'
-import {
-  createKanbanTask,
-  filterKanbanTasks,
-  getInitialKanbanTasks,
-  getUniqueAssignees,
-  moveTaskToStatus,
-  persistKanbanTasks,
-} from '@/lib/kanbanUtils'
+import { filterKanbanTasks, getUniqueAssignees } from '@/lib/kanbanUtils'
+import { taskToKanban } from '@/lib/mappers'
+import { useTaskDashboard } from '@/context/TaskDashboardContext'
+import { useAuth } from '@/context/AuthContext'
 import { sampleTeamMembers } from '@/data/teamDashboard'
 
 const DEFAULT_FILTERS: KanbanFilters = {
@@ -26,25 +22,29 @@ const DEFAULT_FILTERS: KanbanFilters = {
 }
 
 export function KanbanBoard() {
-  const [tasks, setTasks] = useState<KanbanTask[]>(getInitialKanbanTasks)
+  const { user } = useAuth()
+  const { tasks, createTask, updateTaskStatus } = useTaskDashboard()
   const [filters, setFilters] = useState<KanbanFilters>(DEFAULT_FILTERS)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dropTargetColumn, setDropTargetColumn] = useState<TaskStatus | null>(null)
 
-  useEffect(() => {
-    persistKanbanTasks(tasks)
-  }, [tasks])
+  const kanbanTasks = useMemo(() => tasks.map(taskToKanban), [tasks])
+
+  const actor = {
+    name: user?.name ?? 'User',
+    avatarUrl: `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user?.name ?? 'User')}`,
+  }
 
   const assignees = useMemo(() => {
-    const fromTasks = getUniqueAssignees(tasks)
+    const fromTasks = getUniqueAssignees(kanbanTasks)
     const fromTeam = sampleTeamMembers.map((m) => m.name)
     return [...new Set([...fromTasks, ...fromTeam])].sort()
-  }, [tasks])
+  }, [kanbanTasks])
 
   const filteredTasks = useMemo(
-    () => filterKanbanTasks(tasks, filters),
-    [tasks, filters],
+    () => filterKanbanTasks(kanbanTasks, filters),
+    [kanbanTasks, filters],
   )
 
   const tasksByColumn = useMemo(() => {
@@ -61,30 +61,29 @@ export function KanbanBoard() {
 
   const handleAddTask = useCallback(
     (data: AddTaskFormData) => {
-      const newTask = createKanbanTask(
+      void createTask(
         {
           title: data.title,
-          description: data.description || undefined,
-          assignee: data.assignee,
-          dueDate: data.dueDate,
-          priority: data.priority,
+          description: data.description || '',
           status: data.status,
+          priority: data.priority,
+          dueDate: data.dueDate,
+          tags: [],
         },
-        data.assignee,
+        actor,
       )
-      setTasks((prev) => [newTask, ...prev])
     },
-    [],
+    [actor, createTask],
   )
 
   const handleDrop = useCallback(
     (columnId: TaskStatus) => {
       if (!draggingTaskId) return
-      setTasks((prev) => moveTaskToStatus(prev, draggingTaskId, columnId))
+      void updateTaskStatus(draggingTaskId, columnId, actor)
       setDraggingTaskId(null)
       setDropTargetColumn(null)
     },
-    [draggingTaskId],
+    [actor, draggingTaskId, updateTaskStatus],
   )
 
   const handleDragEnd = useCallback(() => {
@@ -93,7 +92,7 @@ export function KanbanBoard() {
   }, [])
 
   const totalVisible = filteredTasks.length
-  const totalAll = tasks.length
+  const totalAll = kanbanTasks.length
 
   return (
     <div
@@ -157,29 +156,23 @@ export function KanbanBoard() {
             <label htmlFor="kanban-priority-filter" className="sr-only">
               Filter by priority
             </label>
-            <div className="relative">
-              <Filter
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-              />
-              <select
-                id="kanban-priority-filter"
-                data-testid="kanban-priority-filter"
-                value={filters.priority}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    priority: e.target.value as KanbanFilters['priority'],
-                  }))
-                }
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-8 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white sm:w-40"
-              >
-                <option value="all">All priorities</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
+            <select
+              id="kanban-priority-filter"
+              data-testid="kanban-priority-filter"
+              value={filters.priority}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  priority: e.target.value as KanbanFilters['priority'],
+                }))
+              }
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white sm:w-auto"
+            >
+              <option value="all">All priorities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
           </div>
 
           <div>
@@ -193,7 +186,7 @@ export function KanbanBoard() {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, assignee: e.target.value }))
               }
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white sm:w-44"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white sm:w-auto"
             >
               <option value="all">All assignees</option>
               {assignees.map((name) => (
@@ -203,21 +196,21 @@ export function KanbanBoard() {
               ))}
             </select>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setFilters(DEFAULT_FILTERS)}
+            data-testid="kanban-clear-filters"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            <Filter aria-hidden="true" className="h-4 w-4" />
+            Clear
+          </button>
         </div>
       </div>
 
-      {draggingTaskId && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="mb-4 rounded-lg bg-indigo-50 px-4 py-2 text-sm text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
-        >
-          Drag task to a column to change its status. Drop targets are highlighted.
-        </p>
-      )}
-
       <div
-        className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0"
+        className="grid gap-4 lg:grid-cols-3"
         data-testid="kanban-columns"
       >
         {KANBAN_COLUMNS.map((column) => (
@@ -239,9 +232,9 @@ export function KanbanBoard() {
 
       <AddTaskModal
         isOpen={isAddModalOpen}
-        assignees={assignees}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddTask}
+        assignees={assignees}
       />
     </div>
   )

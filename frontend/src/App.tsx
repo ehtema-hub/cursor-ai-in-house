@@ -22,7 +22,7 @@ const getPageFromHash = (): DemoPage => {
 }
 
 function App() {
-  const { user, logout: authLogout } = useAuth()
+  const { user, isLoading, logout: authLogout } = useAuth()
   const [page, setPage] = useState<DemoPage>(getPageFromHash())
   const [authView, setAuthView] = useState<AuthView>('login')
 
@@ -39,10 +39,15 @@ function App() {
     setPage(newPage)
   }
 
-  const handleLogout = () => {
-    authLogout()
+  const handleLogout = async () => {
+    await authLogout()
     setAuthView('login')
   }
+
+  const userAvatarUrl = user
+    ? `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`
+    : 'https://api.dicebear.com/9.x/avataaars/svg?seed=Guest'
+  const userName = user?.name ?? 'Guest'
 
   const navLinks: NavLink[] = [
     {
@@ -145,8 +150,8 @@ function App() {
       <Navbar
         brandName="ShopVerse"
         links={navLinks}
-        userAvatarUrl="https://api.dicebear.com/9.x/avataaars/svg?seed=Jordan"
-        userName="Jordan Lee"
+        userAvatarUrl={userAvatarUrl}
+        userName={userName}
         searchPlaceholder="Search products, brands…"
         onSearch={(query) => {
           if (query) alert(`Searching for "${query}"…`)
@@ -157,7 +162,11 @@ function App() {
       {page === 'products' && <ProductCardDemo />}
       {page === 'profiles' && <UserProfileDemo />}
 
-      {page === 'tasks' && (!user ? (
+      {page === 'tasks' && (isLoading ? (
+        <div className="flex min-h-screen items-center justify-center text-gray-500">
+          Loading…
+        </div>
+      ) : !user ? (
         authView === 'login' ? (
           <LoginPage onSwitchToRegister={() => setAuthView('register')} />
         ) : (

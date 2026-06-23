@@ -2,10 +2,18 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
+import {
+  sampleActivities,
+  sampleTeamMembers,
+  type ActivityItem,
+  type Project,
+  type TeamMember,
+} from '@/data/teamDashboard'
 import {
   sampleTasks,
   type DashboardStat,
@@ -13,13 +21,13 @@ import {
   type TaskStatus,
 } from '@/data/sampleTasks'
 import {
-  sampleActivities,
-  sampleProjects,
-  sampleTeamMembers,
-  type ActivityItem,
-  type Project,
-  type TeamMember,
-} from '@/data/teamDashboard'
+  createTaskApi,
+  deleteTaskApi,
+  ensureDefaultProject,
+  fetchTasks,
+  updateTaskStatusApi,
+} from '@/lib/tasksApi'
+import { useAuth } from '@/context/AuthContext'
 
 interface TaskDashboardContextValue {
   tasks: Task[]
@@ -28,12 +36,18 @@ interface TaskDashboardContextValue {
   activities: ActivityItem[]
   stats: DashboardStat[]
   progressBreakdown: { todo: number; inProgress: number; done: number; total: number }
+  isLoading: boolean
+  loadError: string | null
   createTask: (
     taskData: Omit<Task, 'id' | 'assignee' | 'assigneeAvatar'>,
     actor: { name: string; avatarUrl: string },
-  ) => void
-  updateTaskStatus: (id: string, status: TaskStatus, actor: { name: string; avatarUrl: string }) => void
-  deleteTask: (id: string, actor: { name: string; avatarUrl: string }) => void
+  ) => Promise<void>
+  updateTaskStatus: (
+    id: string,
+    status: TaskStatus,
+    actor: { name: string; avatarUrl: string },
+  ) => Promise<void>
+  deleteTask: (id: string, actor: { name: string; avatarUrl: string }) => Promise<void>
   getProjectProgress: (projectId: string) => {
     total: number
     done: number
@@ -85,10 +99,50 @@ function computeStats(tasks: Task[]): DashboardStat[] {
 }
 
 export function TaskDashboardProvider({ children }: { children: ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks)
-  const [projects] = useState<Project[]>(sampleProjects)
+  const { user } = useAuth()
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [teamMembers] = useState<TeamMember[]>(sampleTeamMembers)
   const [activities, setActivities] = useState<ActivityItem[]>(sampleActivities)
+  const [defaultProjectId, setDefaultProjectId] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user) {
+      setTasks([])
+      setProjects([])
+      setDefaultProjectId(null)
+      setIsLoading(false)
+      return
+    }
+
+    let active = true
+    setIsLoading(true)
+    setLoadError(null)
+
+    ;(async () => {
+      try {
+        const project = await ensureDefaultProject()
+        const loadedTasks = await fetchTasks()
+        if (!active) return
+        setProjects([project])
+        setDefaultProjectId(Number(project.id))
+        setTasks(loadedTasks)
+      } catch (error) {
+        if (!active) return
+        setLoadError(error instanceof Error ? error.message : 'Failed to load tasks')
+        setTasks(sampleTasks)
+        setProjects([])
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    })()
+
+    return () => {
+      active = false
+    }
+  }, [user])
 
   const prependActivity = useCallback((activity: ActivityItem) => {
     setActivities((prev) => [activity, ...prev].slice(0, 20))
@@ -114,39 +168,41 @@ export function TaskDashboardProvider({ children }: { children: ReactNode }) {
   )
 
   const createTask = useCallback(
-    (
+    async (
       taskData: Omit<Task, 'id' | 'assignee' | 'assigneeAvatar'>,
       actor: { name: string; avatarUrl: string },
     ) => {
-      const newTask: Task = {
+      if (!defaultProjectId) return
+
+      const payload = {
         ...taskData,
-        id: `task-${Date.now()}`,
-        assignee: actor.name,
-        assigneeAvatar: actor.avatarUrl,
+        projectId: taskData.projectId ?? String(defaultProjectId),
       }
-      setTasks((prev) => [newTask, ...prev])
+
+      const created = await createTaskApi(
+        payload,
+        Number(payload.projectId),
+        user ? Number(user.id) : undefined,
+      )
+      setTasks((prev) => [created, ...prev])
       prependActivity(
         createActivity(
           'task_created',
-          `created "${newTask.title}"`,
+          `created "${created.title}"`,
           actor,
-          getProjectName(newTask.projectId),
+          getProjectName(created.projectId),
         ),
       )
     },
-    [getProjectName, prependActivity],
+    [defaultProjectId, getProjectName, prependActivity, user],
   )
 
   const updateTaskStatus = useCallback(
-    (id: string, status: TaskStatus, actor: { name: string; avatarUrl: string }) => {
-      setTasks((prev) =>
-        prev.map((task) => {
-          if (task.id !== id) return task
-          return { ...task, status }
-        }),
-      )
-
+    async (id: string, status: TaskStatus, actor: { name: string; avatarUrl: string }) => {
       const task = tasks.find((t) => t.id === id)
+      const updated = await updateTaskStatusApi(id, status)
+      setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)))
+
       if (!task) return
 
       const activityType =
@@ -167,8 +223,9 @@ export function TaskDashboardProvider({ children }: { children: ReactNode }) {
   )
 
   const deleteTask = useCallback(
-    (id: string, actor: { name: string; avatarUrl: string }) => {
+    async (id: string, actor: { name: string; avatarUrl: string }) => {
       const task = tasks.find((t) => t.id === id)
+      await deleteTaskApi(id)
       setTasks((prev) => prev.filter((t) => t.id !== id))
       if (task) {
         prependActivity(
@@ -201,6 +258,8 @@ export function TaskDashboardProvider({ children }: { children: ReactNode }) {
       activities,
       stats,
       progressBreakdown,
+      isLoading,
+      loadError,
       createTask,
       updateTaskStatus,
       deleteTask,
@@ -213,6 +272,8 @@ export function TaskDashboardProvider({ children }: { children: ReactNode }) {
       activities,
       stats,
       progressBreakdown,
+      isLoading,
+      loadError,
       createTask,
       updateTaskStatus,
       deleteTask,

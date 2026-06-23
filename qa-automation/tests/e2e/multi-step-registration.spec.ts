@@ -145,7 +145,11 @@ for (const viewport of viewports) {
     })
 
     test('completes registration and reaches success state', async () => {
-      await registrationPage.completeRegistration(VALID_REGISTRATION)
+      const uniqueUser = {
+        ...VALID_REGISTRATION,
+        email: `register-success-${Date.now()}@example.com`,
+      }
+      await registrationPage.completeRegistration(uniqueUser)
 
       await expect(registrationPage.successMessage).toBeVisible()
       await expect(registrationPage.successMessage).toContainText(/success|welcome|created/i)

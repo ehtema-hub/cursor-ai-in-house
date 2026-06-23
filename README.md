@@ -1,4 +1,4 @@
-# Cursor AI In-House Module 6
+# Cursor AI In-House Labs
 
 Monorepo with three applications, each in its own directory:
 

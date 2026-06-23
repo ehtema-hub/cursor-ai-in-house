@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:chromium": "playwright test --project=chromium"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

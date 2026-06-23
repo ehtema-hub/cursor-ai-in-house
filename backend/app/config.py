@@ -54,7 +54,8 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:?cache=shared&uri=true"
+    SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"check_same_thread": False}}
     JWT_SECRET_KEY = "test-jwt-secret"
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
