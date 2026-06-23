@@ -270,7 +270,7 @@ jobs:
         with:
           working-directory: frontend
       - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist/
@@ -289,7 +289,7 @@ jobs:
       - uses: ./.github/actions/setup-python-deps
       - working-directory: backend
         run: python -c "from app import create_app; create_app('testing')"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: backend-app
           path: |
@@ -334,7 +334,7 @@ jobs:
         run: npx playwright test --config qa-automation/tests/e2e/playwright.config.ts --project=chromium --shard=${{ matrix.shard }}/2
         env:
           CI: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report-shard-${{ matrix.shard }}
@@ -449,7 +449,7 @@ jobs:
         with:
           name: production-snapshot
         continue-on-error: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: rollback-snapshot
@@ -479,7 +479,7 @@ jobs:
           path: backend/
       - name: Package release
         run: tar -czf release-bundle.tar.gz dist/ backend/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-bundle
           path: release-bundle.tar.gz
@@ -521,7 +521,7 @@ jobs:
           path: dist/
       - name: Save production snapshot for rollback
         run: mkdir -p production-snapshot && cp -r dist production-snapshot/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: production-snapshot
           path: production-snapshot/
