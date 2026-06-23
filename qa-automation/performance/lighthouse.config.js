@@ -7,6 +7,7 @@ module.exports = {
     collect: {
       url: ['http://localhost:4173/'],
       startServerCommand: 'npm run preview -- --port 4173 --host',
+      startServerCommandOptions: { cwd: path.join(ROOT, 'frontend') },
       startServerReadyPattern: 'Local',
       numberOfRuns: 1,
       settings: { preset: 'desktop' },

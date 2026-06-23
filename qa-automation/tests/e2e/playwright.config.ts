@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '../../..')
+const FRONTEND = path.join(ROOT, 'frontend')
 
 export default defineConfig({
   testDir: '.',
@@ -35,7 +36,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    cwd: ROOT,
+    cwd: FRONTEND,
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

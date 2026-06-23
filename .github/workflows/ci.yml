@@ -54,24 +54,16 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'src/**'
+              - 'frontend/**'
               - 'qa-automation/tests/e2e/**'
-              - 'e2e/**'
-              - 'public/**'
-              - 'index.html'
-              - 'package*.json'
-              - 'playwright.config.ts'
-              - 'vite.config.ts'
-              - 'tsconfig*.json'
-              - 'Dockerfile'
-              - 'docker/**'
+              - 'qa-suite/ui-tests/**'
             backend:
               - 'backend/**'
             docker:
-              - 'Dockerfile'
+              - 'frontend/Dockerfile'
               - 'backend/Dockerfile'
-              - 'docker/**'
-              - '.dockerignore'
+              - 'frontend/docker/**'
+              - 'frontend/.dockerignore'
             all:
               - '**'
 
@@ -87,9 +79,14 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.ref == 'refs/heads/main' ||
       github.ref == 'refs/heads/develop'
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - name: npm audit (high+)
         run: npm audit --audit-level=high
 
@@ -105,6 +102,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - name: Snyk test (npm)
         uses: snyk/actions/node@master
         env:
@@ -193,8 +192,8 @@ jobs:
       matrix:
         include:
           - name: frontend
-            context: .
-            file: Dockerfile
+            context: frontend
+            file: frontend/Dockerfile
             tag: cursor-frontend:ci
           - name: backend
             context: backend
@@ -262,14 +261,19 @@ jobs:
     if: |
       needs.detect-changes.outputs.frontend == 'true' ||
       github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: dist/
+          path: frontend/dist/
           retention-days: 14
           compression-level: 6
 
@@ -306,6 +310,9 @@ jobs:
     if: |
       needs.detect-changes.outputs.frontend == 'true' ||
       github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: frontend
     strategy:
       fail-fast: false
       matrix:
@@ -313,11 +320,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
           restore-keys: |
             playwright-${{ runner.os }}-
       - run: npx playwright install --with-deps chromium

@@ -5,7 +5,7 @@ inputs:
   working-directory:
     description: Directory containing package.json
     required: false
-    default: .
+    default: frontend
 
 runs:
   using: composite

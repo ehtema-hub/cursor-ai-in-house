@@ -1,5 +1,6 @@
 /** @type {import('jest').Config} */
 const ROOT = require('path').resolve(__dirname, '../../..')
+const FRONTEND = require('path').join(ROOT, 'frontend')
 
 module.exports = {
   testEnvironment: 'jsdom',
@@ -15,7 +16,7 @@ module.exports = {
           esModuleInterop: true,
           module: 'commonjs',
           moduleResolution: 'node',
-          baseUrl: ROOT,
+          baseUrl: FRONTEND,
           paths: { '@/*': ['src/*'] },
           verbatimModuleSyntax: false,
         },
@@ -23,13 +24,13 @@ module.exports = {
     ],
   },
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/frontend/src/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/qa-automation/tests/unit/jest.setup.ts'],
   collectCoverageFrom: [
-    'src/lib/**/*.{ts,tsx}',
-    'src/components/**/settingsValidation.ts',
-    '!src/**/*.d.ts',
+    'frontend/src/lib/**/*.{ts,tsx}',
+    'frontend/src/components/**/settingsValidation.ts',
+    '!frontend/src/**/*.d.ts',
   ],
   coverageReporters: ['json-summary', 'lcov', 'text'],
   coverageDirectory: '<rootDir>/qa-automation/reports/output/coverage/frontend',
