@@ -66,26 +66,17 @@ export const REGISTRATION_FIELD_IDS = [
   'register-terms',
 ] as const
 
-const USERS_KEY = 'taskflow_users'
-
-/** Seeds a user in localStorage to simulate duplicate-email submission failures. */
+/** Seeds a user via the backend API to simulate duplicate-email submission failures. */
 export async function seedRegisteredUser(page: Page, data: RegistrationData) {
-  await page.evaluate(
-    ({ key, user }) => {
-      const users = JSON.parse(localStorage.getItem(key) || '[]') as Array<{
-        id: string
-        name: string
-        email: string
-        password: string
-      }>
-      users.push({
-        id: 'seed-user',
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email.trim().toLowerCase(),
-        password: user.password,
-      })
-      localStorage.setItem(key, JSON.stringify(users))
+  const name = `${data.firstName} ${data.lastName}`.trim()
+  const response = await page.request.post('/api/auth/register', {
+    data: {
+      name,
+      email: data.email,
+      password: data.password,
     },
-    { key: USERS_KEY, user: data },
-  )
+  })
+  if (!response.ok() && response.status() !== 409) {
+    throw new Error(`Failed to seed user: ${response.status()} ${await response.text()}`)
+  }
 }

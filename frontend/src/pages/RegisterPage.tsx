@@ -80,6 +80,7 @@ export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<RegistrationFieldErrors>({})
   const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const clearFieldError = (field: keyof RegistrationFieldErrors) => {
     setFieldErrors((prev) => {
@@ -128,20 +129,20 @@ export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
     if (step > 1) setStep((current) => (current - 1) as Step)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSubmitError('')
     const errors = validateStep3({ acceptTerms })
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) return
 
     const fullName = `${firstName.trim()} ${lastName.trim()}`
-    const registerError = register(fullName, email, password)
+    setIsSubmitting(true)
+    const registerError = await register(fullName, email, password)
+    setIsSubmitting(false)
     if (registerError) {
       setSubmitError(registerError)
       return
     }
-
-    sessionStorage.setItem(REGISTRATION_SUCCESS_KEY, 'true')
   }
 
   return (
@@ -368,9 +369,10 @@ export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
                 type="button"
                 data-testid="register-submit"
                 onClick={handleSubmit}
-                className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                disabled={isSubmitting}
+                className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-gray-900"
               >
-                Create account
+                {isSubmitting ? 'Creating account…' : 'Create account'}
               </button>
             )}
           </div>

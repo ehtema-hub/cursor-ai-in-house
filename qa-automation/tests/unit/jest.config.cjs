@@ -20,6 +20,9 @@ module.exports = {
           paths: { '@/*': ['src/*'] },
           verbatimModuleSyntax: false,
         },
+        globals: {
+          __API_BASE_URL__: '',
+        },
       },
     ],
   },

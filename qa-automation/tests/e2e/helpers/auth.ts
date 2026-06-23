@@ -7,6 +7,7 @@ import {
 } from './registration'
 
 export async function clearAppStorage(page: Page) {
+  await page.request.post('http://127.0.0.1:5000/api/test/reset')
   await page.goto('/')
   await page.waitForLoadState('domcontentloaded')
   await page.evaluate(() => localStorage.clear())

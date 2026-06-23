@@ -1,39 +1,35 @@
-import { getSession, loginUser, logoutUser, registerUser, setSession } from '@/lib/auth'
+import { validateLoginInput, validateRegisterInput } from '@/lib/authValidation'
+import { clearTokens, setTokens } from '@/lib/api'
+import { getSession, logoutUser, setSession } from '@/lib/auth'
 
-describe('auth', () => {
+describe('auth validation', () => {
+  it('validates register input', () => {
+    expect(validateRegisterInput('', 'bad', 'short')).toContain('name')
+    expect(validateRegisterInput('Test User', 'not-email', 'password123')).toContain('email')
+    expect(validateRegisterInput('Test User', 'test@example.com', 'short')).toContain('8 characters')
+    expect(validateRegisterInput('Test User', 'test@example.com', 'password123')).toBeNull()
+  })
+
+  it('validates login input', () => {
+    expect(validateLoginInput('', '')).toContain('required')
+    expect(validateLoginInput('test@example.com', 'password')).toBeNull()
+  })
+})
+
+describe('auth session storage', () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
-  it('registers and logs in a user', () => {
-    const reg = registerUser('Test User', 'test@example.com', 'password123')
-    expect(reg.user?.email).toBe('test@example.com')
-
-    const login = loginUser('test@example.com', 'password123')
-    expect(login.user?.email).toBe('test@example.com')
-    expect(getSession()?.email).toBe('test@example.com')
-  })
-
-  it('rejects invalid login', () => {
-    registerUser('Test User', 'test@example.com', 'password123')
-    const result = loginUser('test@example.com', 'wrongpass')
-    expect(result.error).toBe('Invalid email or password.')
-  })
-
-  it('rejects duplicate registration', () => {
-    registerUser('Test User', 'dup@example.com', 'password123')
-    const dup = registerUser('Other', 'dup@example.com', 'password456')
-    expect(dup.error).toContain('already exists')
-  })
-
-  it('rejects short password on register', () => {
-    const result = registerUser('Test', 'short@example.com', 'short')
-    expect(result.error).toContain('8 characters')
-  })
-
-  it('clears session on logout', () => {
+  it('clears session on logout', async () => {
     setSession({ id: '1', name: 'A', email: 'a@b.com' })
-    logoutUser()
+    setTokens('access', 'refresh')
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ message: 'Successfully logged out.' }),
+    }) as jest.Mock
+    await logoutUser()
     expect(getSession()).toBeNull()
   })
 })

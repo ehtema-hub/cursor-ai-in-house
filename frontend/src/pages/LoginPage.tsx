@@ -10,11 +10,15 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    const loginError = login(email, password)
-    setError(loginError ?? '')
+    setIsSubmitting(true)
+    setError('')
+    const loginError = await login(email, password)
+    if (loginError) setError(loginError)
+    setIsSubmitting(false)
   }
 
   return (
@@ -84,9 +88,10 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
           <button
             type="submit"
             data-testid="login-submit"
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60 dark:focus:ring-offset-gray-900"
           >
-            Sign in
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 

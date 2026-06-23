@@ -316,7 +316,7 @@ jobs:
       github.ref == 'refs/heads/main'
     defaults:
       run:
-        working-directory: frontend
+        working-directory: qa-automation/tests/e2e
     strategy:
       fail-fast: false
       matrix:
@@ -326,18 +326,21 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
+      - name: Install E2E runner dependencies
+        run: npm ci
+        working-directory: qa-automation/tests/e2e
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('qa-automation/tests/e2e/package-lock.json') }}
           restore-keys: |
             playwright-${{ runner.os }}-
       - run: npx playwright install --with-deps chromium
+        working-directory: qa-automation/tests/e2e
       - name: E2E shard ${{ matrix.shard }}/2
-        run: npx playwright test --config qa-automation/tests/e2e/playwright.config.ts --project=chromium --shard=${{ matrix.shard }}/2
-        env:
-          CI: true
+        run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/2
+        working-directory: qa-automation/tests/e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -625,3 +628,4 @@ jobs:
           NOTIFY_STATUS: failure
           FAILED_JOBS: ${{ steps.failed.outputs.jobs }}
         run: bash scripts/ci/notify-slack.sh
+

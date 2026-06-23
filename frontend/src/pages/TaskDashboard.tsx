@@ -70,17 +70,17 @@ function TaskDashboardContent({
   }, [isSidebarOpen])
 
   const handleStatusChange = (id: string, status: TaskStatus) => {
-    updateTaskStatus(id, status, actor)
+    void updateTaskStatus(id, status, actor)
   }
 
   const handleDeleteTask = (id: string) => {
-    deleteTask(id, actor)
+    void deleteTask(id, actor)
   }
 
   const handleCreateTask = (
     taskData: Parameters<typeof createTask>[0],
   ) => {
-    createTask(taskData, actor)
+    void createTask(taskData, actor)
   }
 
   const navItems = SIDEBAR_ITEMS.map((item) => ({
