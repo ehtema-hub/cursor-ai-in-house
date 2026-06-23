@@ -122,7 +122,7 @@ jobs:
   security-snyk-npm:
     name: Security — Snyk (npm)
     runs-on: ubuntu-latest
-    if: secrets.SNYK_TOKEN != ''
+    if: vars.SNYK_ENABLED == 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-deps
@@ -145,7 +145,7 @@ jobs:
   security-snyk-python:
     name: Security — Snyk (python)
     runs-on: ubuntu-latest
-    if: secrets.SNYK_TOKEN != ''
+    if: vars.SNYK_ENABLED == 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python-deps
@@ -155,8 +155,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --file=requirements.txt --severity-threshold=high --json-file-output=qa-automation/reports/output/security/snyk-python.json
-        working-directory: backend
+          args: --file=backend/requirements.txt --severity-threshold=high --json-file-output=qa-automation/reports/output/security/snyk-python.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
