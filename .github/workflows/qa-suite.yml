@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
+          cd frontend && npm ci
           pip install -r backend/requirements.txt -r backend/requirements-qa.txt
           pip install radon pylint gunicorn
           npx playwright install --with-deps chromium

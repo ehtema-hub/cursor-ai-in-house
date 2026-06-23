@@ -1,7 +1,7 @@
 {
   "coverage": {
     "minimumPercent": 80,
-    "frontendPaths": ["src/lib/**"],
+    "frontendPaths": ["frontend/src/lib/**"],
     "backendPaths": ["backend/app/**"]
   },
   "complexity": {

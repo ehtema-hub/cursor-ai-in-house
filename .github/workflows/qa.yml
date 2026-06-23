@@ -30,9 +30,14 @@ jobs:
   test-jest:
     name: Test — Jest
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - run: npm install jest ts-jest @types/jest jest-environment-jsdom @testing-library/jest-dom --no-save
       - run: bash qa-automation/tests/unit/frontend/run-unit.sh
       - uses: actions/upload-artifact@v4
@@ -68,8 +73,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - run: |
-          npx eslint . -c qa-automation/quality/eslint.config.js -f json \
+          npx eslint frontend/src -c qa-automation/quality/eslint.config.js -f json \
             -o qa-automation/reports/output/lint/eslint.json || true
           mkdir -p qa-automation/reports/output/lint
           node -e "
@@ -119,6 +126,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - name: Snyk test (npm)
         uses: snyk/actions/node@master
         env:
@@ -158,9 +167,14 @@ jobs:
   security-zap:
     name: Security — OWASP ZAP
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - uses: ./.github/actions/setup-python-deps
       - run: npm run build
       - name: Start backend API
@@ -189,13 +203,18 @@ jobs:
   perf-lighthouse:
     name: Performance — Lighthouse
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-deps
+        with:
+          working-directory: frontend
       - run: |
           npm install @lhci/cli --no-save
           npm run build
-          npx @lhci/cli autorun --config=qa-automation/performance/lighthouse.config.js
+          npx @lhci/cli autorun --config=../qa-automation/performance/lighthouse.config.js
       - uses: actions/upload-artifact@v4
         with:
           name: qa-lighthouse

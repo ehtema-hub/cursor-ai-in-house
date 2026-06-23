@@ -28,7 +28,7 @@ step "Integration: pytest" bash "$QA/tests/integration/run-integration.sh" || tr
 
 # --- Quality ---
 step "ESLint" bash -c "
-  npx eslint . -c qa-automation/quality/eslint.config.js -f json -o $REPORTS/lint/eslint.json || true
+  npx eslint frontend/src -c qa-automation/quality/eslint.config.js -f json -o $REPORTS/lint/eslint.json || true
   node -e \"
     const fs=require('fs'); const p='$REPORTS/lint/eslint.json';
     const r=fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):[]; 
@@ -48,8 +48,8 @@ step "Pylint" bash -c "
 
 # --- Performance ---
 step "Lighthouse" bash -c "
-  npm run build
-  npx @lhci/cli autorun --config=qa-automation/performance/lighthouse.config.js || true
+  cd frontend && npm run build
+  npx @lhci/cli autorun --config=../qa-automation/performance/lighthouse.config.js || true
   node -e \"
     const fs=require('fs'),path=require('path');
     const dir='$REPORTS/lighthouse';

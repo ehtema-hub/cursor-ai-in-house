@@ -11,7 +11,7 @@ FAILED=0
 
 echo ">>> ESLint (complexity ≤ 10)"
 set +e
-npx eslint src qa-suite/ui-tests -c qa-suite/code-quality/eslint.config.js -f json -o "$OUT/eslint.json"
+npx eslint frontend/src qa-suite/ui-tests -c qa-suite/code-quality/eslint.config.js -f json -o "$OUT/eslint.json"
 ESLINT_EXIT=$?
 set -e
 
