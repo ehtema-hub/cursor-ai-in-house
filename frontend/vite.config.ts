@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   define: {
     __API_BASE_URL__: JSON.stringify(process.env.VITE_API_URL ?? ''),
+    __BLOG_API_BASE_URL__: JSON.stringify(process.env.VITE_BLOG_API_URL ?? '/blog-api'),
   },
   resolve: {
     alias: {
@@ -23,6 +24,11 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
+      '/blog-api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/blog-api/, ''),
+      },
     },
   },
   preview: {
@@ -34,6 +40,11 @@ export default defineConfig({
       '/health': {
         target: 'http://localhost:5000',
         changeOrigin: true,
+      },
+      '/blog-api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/blog-api/, ''),
       },
     },
   },

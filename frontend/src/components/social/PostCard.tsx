@@ -7,10 +7,11 @@ import { formatCount, formatRelativeTime } from '@/lib/socialUtils'
 
 export interface PostCardProps {
   post: Post
-  currentUser: SocialUser
-  onLike: (postId: string) => void
-  onAddComment: (postId: string, content: string) => void
-  onShare: (postId: string) => void
+  currentUser?: SocialUser
+  onLike?: (postId: string) => void
+  onAddComment: (postId: string, content: string) => void | Promise<void>
+  onShare?: (postId: string) => void
+  showSocialActions?: boolean
 }
 
 export function PostCard({
@@ -19,6 +20,7 @@ export function PostCard({
   onLike,
   onAddComment,
   onShare,
+  showSocialActions = true,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(post.comments.length > 0)
 
@@ -48,9 +50,19 @@ export function PostCard({
             </time>
           </p>
         </div>
+        {post.categoryName && (
+          <span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+            {post.categoryName}
+          </span>
+        )}
       </header>
 
       <div className="px-4 pb-3">
+        {post.title && (
+          <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-white">
+            {post.title}
+          </h3>
+        )}
         <p className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">
           {post.content}
         </p>
@@ -68,24 +80,26 @@ export function PostCard({
       )}
 
       <div className="flex items-center gap-1 border-t border-gray-100 px-2 py-1 dark:border-gray-700">
-        <button
-          type="button"
-          onClick={() => onLike(post.id)}
-          aria-label={post.likedByCurrentUser ? 'Unlike post' : 'Like post'}
-          aria-pressed={post.likedByCurrentUser}
-          data-testid={`like-button-${post.id}`}
-          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            post.likedByCurrentUser
-              ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20'
-              : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'
-          }`}
-        >
-          <Heart
-            aria-hidden="true"
-            className={`h-4 w-4 ${post.likedByCurrentUser ? 'fill-current' : ''}`}
-          />
-          {formatCount(post.likes)}
-        </button>
+        {showSocialActions && onLike && (
+          <button
+            type="button"
+            onClick={() => onLike(post.id)}
+            aria-label={post.likedByCurrentUser ? 'Unlike post' : 'Like post'}
+            aria-pressed={post.likedByCurrentUser}
+            data-testid={`like-button-${post.id}`}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              post.likedByCurrentUser
+                ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20'
+                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Heart
+              aria-hidden="true"
+              className={`h-4 w-4 ${post.likedByCurrentUser ? 'fill-current' : ''}`}
+            />
+            {formatCount(post.likes)}
+          </button>
+        )}
 
         <button
           type="button"
@@ -99,16 +113,18 @@ export function PostCard({
           {formatCount(post.comments.length)}
         </button>
 
-        <button
-          type="button"
-          onClick={() => onShare(post.id)}
-          aria-label="Share post"
-          data-testid={`share-button-${post.id}`}
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-gray-400 dark:hover:bg-gray-700"
-        >
-          <Share2 aria-hidden="true" className="h-4 w-4" />
-          {formatCount(post.shares)}
-        </button>
+        {showSocialActions && onShare && (
+          <button
+            type="button"
+            onClick={() => onShare(post.id)}
+            aria-label="Share post"
+            data-testid={`share-button-${post.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-gray-400 dark:hover:bg-gray-700"
+          >
+            <Share2 aria-hidden="true" className="h-4 w-4" />
+            {formatCount(post.shares)}
+          </button>
+        )}
       </div>
 
       {showComments && (

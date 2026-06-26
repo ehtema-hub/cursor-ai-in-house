@@ -22,6 +22,7 @@ module.exports = {
         },
         globals: {
           __API_BASE_URL__: '',
+          __BLOG_API_BASE_URL__: '/blog-api',
         },
       },
     ],
