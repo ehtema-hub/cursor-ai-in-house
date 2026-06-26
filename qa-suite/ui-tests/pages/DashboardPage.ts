@@ -27,8 +27,19 @@ export class DashboardPage extends BasePage {
   async createTask(title: string) {
     await this.click('new-task-button')
     await this.fill('task-title-input', title)
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + 1)
+    const dueDateValue = dueDate.toISOString().split('T')[0]
+    await this.fill('task-due-date-input', dueDateValue)
+    const createResponse = this.page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/tasks/') && response.request().method() === 'POST',
+    )
     await this.click('submit-create-task')
-    await expect(this.page.getByText(title)).toBeVisible()
+    await createResponse
+    await expect(this.page.getByRole('heading', { name: title })).toBeVisible({
+      timeout: 15_000,
+    })
   }
 
   async navigateToAnalytics() {

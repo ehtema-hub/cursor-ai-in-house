@@ -30,13 +30,15 @@ echo ">>> Pylint"
 set +e
 cd backend
 pip install -q pylint 2>/dev/null || true
-pylint app --rcfile=../qa-suite/code-quality/pylint.rc --output-format=json > "../$OUT/pylint.json" 2>/dev/null
+pylint app --rcfile=../qa-suite/code-quality/pylint.rc --output-format=json > "$OUT/pylint.json" 2>/dev/null
 PYLINT_EXIT=$?
-SCORE=$(pylint app --rcfile=../qa-suite/code-quality/pylint.rc --score-only 2>/dev/null | tail -1 | awk '{print $NF}' || echo 0)
+SCORE=$(pylint app --rcfile=../qa-suite/code-quality/pylint.rc 2>&1 | grep -oE 'rated at [0-9.]+' | head -1 | awk '{print $3}')
+SCORE="${SCORE:-0}"
+MIN_PYLINT=7.5
 cd "$ROOT"
-node -e "require('fs').writeFileSync('$OUT/pylint-summary.json',JSON.stringify({score:parseFloat('$SCORE')||0}))"
-echo "Pylint score: $SCORE"
-[ "$PYLINT_EXIT" -ne 0 ] && FAILED=1
+node -e "require('fs').writeFileSync('$OUT/pylint-summary.json',JSON.stringify({score:parseFloat('$SCORE')||0,minimum:$MIN_PYLINT,passed:parseFloat('$SCORE')>=$MIN_PYLINT}))"
+echo "Pylint score: $SCORE (minimum $MIN_PYLINT)"
+node -e "process.exit(parseFloat('$SCORE')>=$MIN_PYLINT?0:1)" || FAILED=1
 
 echo ">>> Python cyclomatic complexity (radon)"
 python3 qa-suite/code-quality/complexity-check.py || FAILED=1

@@ -95,37 +95,41 @@ def _get_ticket_or_404(ticket_id: int) -> SupportTicket:
     return ticket
 
 
-def _apply_ticket_filters(query, user: User):
+def _apply_role_scope(query, user: User):
     if user.is_admin:
-        pass
-    elif user.is_agent:
-        query = query.filter(
+        return query
+    if user.is_agent:
+        return query.filter(
             or_(
                 SupportTicket.assigned_to_id == user.id,
                 SupportTicket.assigned_to_id.is_(None),
                 SupportTicket.status == "open",
             )
         )
-    else:
-        query = query.filter(
-            or_(
-                SupportTicket.customer_id == user.id,
-                SupportTicket.customer_email == user.email.lower(),
-            )
+    return query.filter(
+        or_(
+            SupportTicket.customer_id == user.id,
+            SupportTicket.customer_email == user.email.lower(),
         )
+    )
 
+
+def _apply_search_filter(query):
     q = request.args.get("q")
-    if q:
-        like = f"%{q.strip()}%"
-        query = query.filter(
-            or_(
-                SupportTicket.ticket_number.ilike(like),
-                SupportTicket.subject.ilike(like),
-                SupportTicket.description.ilike(like),
-                SupportTicket.customer_email.ilike(like),
-            )
+    if not q:
+        return query
+    like = f"%{q.strip()}%"
+    return query.filter(
+        or_(
+            SupportTicket.ticket_number.ilike(like),
+            SupportTicket.subject.ilike(like),
+            SupportTicket.description.ilike(like),
+            SupportTicket.customer_email.ilike(like),
         )
+    )
 
+
+def _apply_list_filters(query):
     status = request.args.get("status")
     if status:
         statuses = [s.strip().lower().replace(" ", "_") for s in status.split(",")]
@@ -150,13 +154,24 @@ def _apply_ticket_filters(query, user: User):
     if customer_email:
         query = query.filter(SupportTicket.customer_email == customer_email.lower())
 
+    return query
+
+
+def _apply_date_filters(query):
     created_from = parse_date_param(request.args.get("created_from"), "created_from")
     created_to = parse_date_param(request.args.get("created_to"), "created_to")
     if created_from:
         query = query.filter(SupportTicket.created_at >= created_from)
     if created_to:
         query = query.filter(SupportTicket.created_at <= created_to)
+    return query
 
+
+def _apply_ticket_filters(query, user: User):
+    query = _apply_role_scope(query, user)
+    query = _apply_search_filter(query)
+    query = _apply_list_filters(query)
+    query = _apply_date_filters(query)
     return query
 
 
@@ -332,6 +347,42 @@ class TicketDetail(MethodView):
         return ""
 
 
+def _record_first_response(ticket: SupportTicket, user: User) -> None:
+    if ticket.first_response_at is None and user.is_staff:
+        ticket.first_response_at = datetime.now(timezone.utc)
+        check_and_update_sla_flags(ticket)
+
+
+def _notify_comment_parties(ticket: SupportTicket, comment: TicketComment, is_internal: bool) -> None:
+    recipients = {ticket.customer_email}
+    if ticket.assigned_to:
+        recipients.add(ticket.assigned_to.email)
+    if not is_internal:
+        email.notify_new_comment(ticket, comment, list(recipients))
+
+    if ticket.customer_id:
+        db.session.add(
+            SupportNotification(
+                user_id=ticket.customer_id,
+                ticket_id=ticket.id,
+                type="new_comment",
+                title="New comment on your ticket",
+                message=f"New comment on ticket {ticket.ticket_number}.",
+            )
+        )
+
+    if ticket.assigned_to_id:
+        db.session.add(
+            SupportNotification(
+                user_id=ticket.assigned_to_id,
+                ticket_id=ticket.id,
+                type="new_comment",
+                title="New comment on assigned ticket",
+                message=f"New comment on ticket {ticket.ticket_number}.",
+            )
+        )
+
+
 @tickets_blp.route("/<int:ticket_id>/comments")
 class TicketComments(MethodView):
     @tickets_blp.response(200, TicketCommentSchema(many=True))
@@ -376,39 +427,9 @@ class TicketComments(MethodView):
         )
         db.session.add(comment)
 
-        if ticket.first_response_at is None and user.is_staff:
-            ticket.first_response_at = datetime.now(timezone.utc)
-            check_and_update_sla_flags(ticket)
-
+        _record_first_response(ticket, user)
         db.session.flush()
-
-        recipients = {ticket.customer_email}
-        if ticket.assigned_to:
-            recipients.add(ticket.assigned_to.email)
-        if not is_internal:
-            email.notify_new_comment(ticket, comment, list(recipients))
-
-        if ticket.customer_id:
-            db.session.add(
-                SupportNotification(
-                    user_id=ticket.customer_id,
-                    ticket_id=ticket.id,
-                    type="new_comment",
-                    title="New comment on your ticket",
-                    message=f"New comment on ticket {ticket.ticket_number}.",
-                )
-            )
-
-        if ticket.assigned_to_id:
-            db.session.add(
-                SupportNotification(
-                    user_id=ticket.assigned_to_id,
-                    ticket_id=ticket.id,
-                    type="new_comment",
-                    title="New comment on assigned ticket",
-                    message=f"New comment on ticket {ticket.ticket_number}.",
-                )
-            )
+        _notify_comment_parties(ticket, comment, is_internal)
 
         db.session.commit()
         return comment
@@ -648,6 +669,57 @@ class SlaReports(MethodView):
         return get_sla_report()
 
 
+def _fetch_report_payload(report_type: str, period: str) -> dict:
+    if report_type == "tickets":
+        return get_ticket_report(period)
+    if report_type == "agents":
+        return get_agent_report()
+    return get_sla_report()
+
+
+def _write_ticket_report_csv(writer: csv.writer, payload: dict) -> None:
+    writer.writerow(["metric", "value"])
+    writer.writerow(["period", payload["period"]])
+    writer.writerow(["total_created", payload["total_created"]])
+    for status, count in payload["by_status"].items():
+        writer.writerow([f"status_{status}", count])
+    for category, count in payload["by_category"].items():
+        writer.writerow([f"category_{category}", count])
+
+
+def _write_agent_report_csv(writer: csv.writer, payload: dict) -> None:
+    writer.writerow(["agent_id", "agent_name", "assigned_tickets", "resolved_tickets"])
+    for row in payload["agents"]:
+        writer.writerow(
+            [row["agent_id"], row["agent_name"], row["assigned_tickets"], row["resolved_tickets"]]
+        )
+
+
+def _write_sla_report_csv(writer: csv.writer, payload: dict) -> None:
+    writer.writerow(["metric", "value"])
+    for key, value in payload.items():
+        writer.writerow([key, value])
+
+
+def _export_report_csv(report_type: str, payload: dict) -> object:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    if report_type == "tickets":
+        _write_ticket_report_csv(writer, payload)
+    elif report_type == "agents":
+        _write_agent_report_csv(writer, payload)
+    else:
+        _write_sla_report_csv(writer, payload)
+
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"{report_type}_report.csv",
+    )
+
+
 @admin_blp.route("/reports/export")
 class ReportExport(MethodView):
     @admin_blp.arguments(ReportExportSchema)
@@ -661,41 +733,9 @@ class ReportExport(MethodView):
         period = data.get("period", "monthly")
         fmt = data.get("format", "csv")
 
-        if report_type == "tickets":
-            payload = get_ticket_report(period)
-        elif report_type == "agents":
-            payload = get_agent_report()
-        else:
-            payload = get_sla_report()
+        payload = _fetch_report_payload(report_type, period)
 
         if fmt == "json":
             return payload
 
-        output = io.StringIO()
-        writer = csv.writer(output)
-        if report_type == "tickets":
-            writer.writerow(["metric", "value"])
-            writer.writerow(["period", payload["period"]])
-            writer.writerow(["total_created", payload["total_created"]])
-            for status, count in payload["by_status"].items():
-                writer.writerow([f"status_{status}", count])
-            for category, count in payload["by_category"].items():
-                writer.writerow([f"category_{category}", count])
-        elif report_type == "agents":
-            writer.writerow(["agent_id", "agent_name", "assigned_tickets", "resolved_tickets"])
-            for row in payload["agents"]:
-                writer.writerow(
-                    [row["agent_id"], row["agent_name"], row["assigned_tickets"], row["resolved_tickets"]]
-                )
-        else:
-            writer.writerow(["metric", "value"])
-            for key, value in payload.items():
-                writer.writerow([key, value])
-
-        output.seek(0)
-        return send_file(
-            io.BytesIO(output.getvalue().encode("utf-8")),
-            mimetype="text/csv",
-            as_attachment=True,
-            download_name=f"{report_type}_report.csv",
-        )
+        return _export_report_csv(report_type, payload)

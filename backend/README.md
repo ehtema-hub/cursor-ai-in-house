@@ -17,7 +17,7 @@ Flask REST API for project/task management and a customer support ticket system.
 ### Prerequisites
 
 - Python 3.11+
-- Redis (optional for dev; in-memory fallback available in tests)
+- Redis (optional for local dev — cache uses in-memory fallback; Celery tasks run in-process by default)
 
 ### Setup
 
@@ -69,7 +69,8 @@ celery -A celery_worker.celery_app worker --loglevel=info
 | `JWT_SECRET_KEY` | — | JWT signing key |
 | `DATABASE_URL` | `sqlite:///app.db` | Database connection string |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis for cache and rate limiting |
-| `CELERY_BROKER_URL` | same as `REDIS_URL` | Celery message broker |
+| `CELERY_BROKER_URL` | same as `REDIS_URL` | Celery message broker (used when `CELERY_TASK_ALWAYS_EAGER=false`) |
+| `CELERY_TASK_ALWAYS_EAGER` | `true` in development | Run background tasks in-process without Redis/worker |
 | `PORT` | `5000` | Server port |
 
 See [`.env.example`](.env.example) for the full list.
@@ -146,9 +147,34 @@ After running `seed_support_users()`:
 
 ## Testing
 
+### pytest (recommended)
+
+From the repo root:
+
 ```bash
-pytest                          # Full suite (task/project modules, 90% threshold)
-pytest --no-cov                 # Skip coverage gate
+npm run test:backend          # full suite (quiet)
+npm run test:backend:full     # full suite with coverage output
+```
+
+Or from `backend/` with the helper script:
+
+```bash
+cd backend
+source .venv/bin/activate     # if not already active
+bash run-tests.sh             # same as pytest with test env vars set
+bash run-tests.sh -q          # quiet
+bash run-tests.sh --no-cov    # skip coverage gate
+```
+
+You can also run `pytest` directly **from the `backend/` directory** with the virtualenv activated and `FLASK_ENV=testing` set. Running `pytest` from the repo root will not work — there is no root-level pytest config.
+
+```bash
+cd backend
+source .venv/bin/activate
+export FLASK_ENV=testing
+export JWT_SECRET_KEY=qa-test-jwt-secret-key-32chars!!
+pytest                        # Full suite (task/project modules, 90% threshold)
+pytest --no-cov               # Skip coverage gate
 
 # Support ticket tests — use pytest-support.ini so coverage measures support code,
 # not task blueprints (default pytest.ini would show ~42% for support-only runs)

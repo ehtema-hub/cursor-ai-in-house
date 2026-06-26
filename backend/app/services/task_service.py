@@ -90,6 +90,13 @@ def update_task(task: Task, data: dict) -> tuple[list[str], str | None, int | No
     old_assignee = task.assignee_id
     changes = []
 
+    _apply_simple_task_fields(task, data, changes)
+    _apply_assignee_update(task, data, changes)
+
+    return changes, old_status, old_assignee
+
+
+def _apply_simple_task_fields(task: Task, data: dict, changes: list[str]) -> None:
     if "title" in data:
         task.title = data["title"].strip()
         changes.append("title updated")
@@ -105,14 +112,17 @@ def update_task(task: Task, data: dict) -> tuple[list[str], str | None, int | No
     if "due_date" in data:
         task.due_date = data["due_date"]
         changes.append("due date updated")
-    if "assignee_id" in data:
-        if data["assignee_id"] and not is_project_member(task.project_id, data["assignee_id"]):
-            project = Project.query.get(task.project_id)
-            if project is None or project.owner_id != data["assignee_id"]:
-                from flask_smorest import abort
 
-                abort(400, message="Assignee must be a project member.")
-        task.assignee_id = data["assignee_id"]
-        changes.append("assignee changed")
 
-    return changes, old_status, old_assignee
+def _apply_assignee_update(task: Task, data: dict, changes: list[str]) -> None:
+    if "assignee_id" not in data:
+        return
+    assignee_id = data["assignee_id"]
+    if assignee_id and not is_project_member(task.project_id, assignee_id):
+        project = Project.query.get(task.project_id)
+        if project is None or project.owner_id != assignee_id:
+            from flask_smorest import abort
+
+            abort(400, message="Assignee must be a project member.")
+    task.assignee_id = assignee_id
+    changes.append("assignee changed")

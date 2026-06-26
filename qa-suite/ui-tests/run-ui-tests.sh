@@ -2,14 +2,39 @@
 # Run Playwright UI tests with JSON report for dashboard aggregation.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUT="$ROOT/qa-suite/reporting/output/ui-tests"
 cd "$ROOT"
 
 mkdir -p "$OUT"
 
-npx playwright test \
-  --config qa-suite/config/playwright.config.ts \
+export UI_BASE_URL="${UI_BASE_URL:-http://127.0.0.1:4173}"
+API_URL="${API_URL:-http://127.0.0.1:5000}"
+
+for i in $(seq 1 30); do
+  if curl -sf "$UI_BASE_URL" >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "ERROR: Frontend preview not reachable at $UI_BASE_URL"
+    exit 1
+  fi
+  sleep 2
+done
+
+if curl -sf "$API_URL/health" >/dev/null 2>&1; then
+  echo "Resetting backend database for UI tests..."
+  curl -sf -X POST "$API_URL/api/test/reset" >/dev/null || true
+fi
+
+if [ ! -d "$ROOT/qa-suite/ui-tests/node_modules/@playwright/test" ]; then
+  echo "Installing Playwright for QA UI tests..."
+  npm install --prefix "$ROOT/qa-suite/ui-tests" --no-fund --no-audit
+  npx --prefix "$ROOT/qa-suite/ui-tests" playwright install chromium
+fi
+
+npx --prefix "$ROOT/qa-suite/ui-tests" playwright test \
+  --config "$ROOT/qa-suite/ui-tests/playwright.config.mjs" \
   --project=chromium
 
 # Summarize for gate checks

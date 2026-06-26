@@ -50,6 +50,9 @@ class DevelopmentConfig(Config):
         "DATABASE_URL",
         "sqlite:///app.db",
     )
+    # Run Celery tasks in-process for local dev (no Redis/worker required).
+    CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
+    CELERY_TASK_EAGER_PROPAGATES = True
 
 
 class TestingConfig(Config):

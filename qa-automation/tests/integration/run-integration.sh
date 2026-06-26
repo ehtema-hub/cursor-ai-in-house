@@ -2,9 +2,20 @@
 # Backend integration tests (API suites).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 REPORTS="$ROOT/qa-automation/reports/output"
 cd "$ROOT/backend"
+
+if [ -f .venv/bin/activate ]; then
+  # shellcheck source=/dev/null
+  source .venv/bin/activate
+elif [ -f venv/bin/activate ]; then
+  # shellcheck source=/dev/null
+  source venv/bin/activate
+else
+  echo "No virtualenv in backend/. Run: cd backend && python -m venv .venv && pip install -r requirements.txt"
+  exit 1
+fi
 
 mkdir -p "$REPORTS/tests" "$REPORTS/coverage/backend"
 
@@ -18,6 +29,7 @@ INTEGRATION_PATHS=(
 )
 
 pytest -q "${INTEGRATION_PATHS[@]}" \
+  --override-ini='addopts=' \
   --cov=app.blueprints --cov=app.support \
   --cov-report=json:"$REPORTS/coverage/backend/integration-coverage.json" \
   --junitxml="$REPORTS/tests/integration-pytest-junit.xml"

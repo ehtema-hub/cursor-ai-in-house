@@ -27,6 +27,16 @@ describe('validateStep1', () => {
   it('requires at least 10 phone digits', () => {
     expect(validateStep1({ ...valid, phone: '123' }).phone).toBeDefined()
   })
+
+  it('rejects names that are too long', () => {
+    const longName = 'a'.repeat(51)
+    expect(validateStep1({ ...valid, firstName: longName })['first-name']).toContain('no more than')
+    expect(validateStep1({ ...valid, lastName: longName })['last-name']).toContain('no more than')
+  })
+
+  it('rejects names that are too short', () => {
+    expect(validateStep1({ ...valid, firstName: 'A' })['first-name']).toContain('at least')
+  })
 })
 
 describe('validateStep2', () => {
@@ -41,6 +51,11 @@ describe('validateStep2', () => {
   it('requires minimum password length', () => {
     const errors = validateStep2({ password: 'short', confirmPassword: 'short' })
     expect(errors.password).toContain('8 characters')
+  })
+
+  it('requires password fields', () => {
+    expect(validateStep2({ password: '', confirmPassword: '' }).password).toBeDefined()
+    expect(validateStep2({ password: 'password123', confirmPassword: '' })['confirm-password']).toBeDefined()
   })
 })
 

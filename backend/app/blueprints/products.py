@@ -78,13 +78,7 @@ class ProductDetail(MethodView):
         product = Product.query.get(product_id)
         if product is None:
             abort(404, message="Product not found.")
-        for key in ("name", "description", "category", "is_active"):
-            if key in data and data[key] is not None:
-                setattr(product, key, data[key].strip() if isinstance(data[key], str) else data[key])
-        if "price" in data and data["price"] is not None:
-            product.price = Decimal(str(data["price"]))
-        if "stock_quantity" in data and data["stock_quantity"] is not None:
-            product.stock_quantity = int(data["stock_quantity"])
+        _apply_product_updates(product, data)
         db.session.commit()
         return product
 
@@ -101,3 +95,14 @@ class ProductDetail(MethodView):
         product.is_active = False
         db.session.commit()
         return ""
+
+
+def _apply_product_updates(product, data: dict) -> None:
+    for key in ("name", "description", "category", "is_active"):
+        if key in data and data[key] is not None:
+            value = data[key].strip() if isinstance(data[key], str) else data[key]
+            setattr(product, key, value)
+    if "price" in data and data["price"] is not None:
+        product.price = Decimal(str(data["price"]))
+    if "stock_quantity" in data and data["stock_quantity"] is not None:
+        product.stock_quantity = int(data["stock_quantity"])

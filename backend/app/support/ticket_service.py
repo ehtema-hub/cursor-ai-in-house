@@ -111,6 +111,36 @@ def auto_assign_ticket(ticket: SupportTicket, assigned_by: User) -> TicketAssign
     return assign_ticket(ticket, agent, assigned_by, auto=True)
 
 
+def _validate_reopen_transition(ticket: SupportTicket, user: User) -> None:
+    from datetime import timedelta
+
+    from app.support.constants import REOPEN_WINDOW_DAYS
+
+    if ticket.closed_at is None:
+        raise SupportAPIError(
+            "Cannot reopen ticket without close timestamp.",
+            "VALIDATION_ERROR",
+            400,
+        )
+    closed_at = ticket.closed_at
+    if closed_at.tzinfo is None:
+        closed_at = closed_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) - closed_at > timedelta(days=REOPEN_WINDOW_DAYS):
+        raise SupportAPIError(
+            "Tickets can only be reopened within 7 days of closing.",
+            "FORBIDDEN",
+            403,
+        )
+    if not user.is_customer:
+        return
+    is_owner = (
+        ticket.customer_id == user.id
+        or ticket.customer_email.lower() == user.email.lower()
+    )
+    if not is_owner:
+        raise SupportAPIError("Insufficient permissions.", "FORBIDDEN", 403)
+
+
 def validate_status_transition(ticket: SupportTicket, new_status: str, user: User) -> None:
     current = ticket.status
     if current == new_status:
@@ -126,31 +156,7 @@ def validate_status_transition(ticket: SupportTicket, new_status: str, user: Use
         )
 
     if current == "closed" and new_status == "reopened":
-        from app.support.constants import REOPEN_WINDOW_DAYS
-        from datetime import timedelta
-
-        if ticket.closed_at is None:
-            raise SupportAPIError(
-                "Cannot reopen ticket without close timestamp.",
-                "VALIDATION_ERROR",
-                400,
-            )
-        closed_at = ticket.closed_at
-        if closed_at.tzinfo is None:
-            closed_at = closed_at.replace(tzinfo=timezone.utc)
-        if datetime.now(timezone.utc) - closed_at > timedelta(days=REOPEN_WINDOW_DAYS):
-            raise SupportAPIError(
-                "Tickets can only be reopened within 7 days of closing.",
-                "FORBIDDEN",
-                403,
-            )
-        if user.is_customer:
-            is_owner = (
-                ticket.customer_id == user.id
-                or ticket.customer_email.lower() == user.email.lower()
-            )
-            if not is_owner:
-                raise SupportAPIError("Insufficient permissions.", "FORBIDDEN", 403)
+        _validate_reopen_transition(ticket, user)
 
 
 def update_ticket_status(

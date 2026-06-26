@@ -21,10 +21,11 @@ test.describe('Login Page', () => {
     const login = new LoginPage(page)
     const register = new RegisterPage(page)
     const dashboard = new DashboardPage(page)
+    const email = `qa-register-${Date.now()}@example.com`
 
     await login.open()
     await login.goToRegister()
-    await register.register(TEST_USER)
+    await register.register({ ...TEST_USER, email })
     await dashboard.assertLoaded()
   })
 

@@ -16,22 +16,7 @@ import {
   trafficSourcesData,
   userGrowthData,
 } from '@/data/analyticsData'
-
-function filterRecords(records: typeof analyticsRecords, filters: FilterState) {
-  return records.filter((record) => {
-    if (
-      filters.search &&
-      !record.name.toLowerCase().includes(filters.search.toLowerCase())
-    ) {
-      return false
-    }
-    if (filters.status !== 'all' && record.status !== filters.status) return false
-    if (filters.category !== 'all' && record.category !== filters.category) return false
-    if (filters.dateFrom && record.date < filters.dateFrom) return false
-    if (filters.dateTo && record.date > filters.dateTo) return false
-    return true
-  })
-}
+import { filterAnalyticsRecords } from '@/lib/analyticsFilters'
 
 interface AnalyticsDashboardProps {
   onNavigateAway?: () => void
@@ -48,7 +33,7 @@ export function AnalyticsDashboard({ onNavigateAway }: AnalyticsDashboardProps) 
   }, [])
 
   const filteredRecords = useMemo(
-    () => filterRecords(analyticsRecords, filters),
+    () => filterAnalyticsRecords(analyticsRecords, filters),
     [filters],
   )
 
