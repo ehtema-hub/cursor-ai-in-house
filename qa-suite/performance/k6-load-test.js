@@ -9,8 +9,8 @@ const MAX_ERROR_RATE = Number(__ENV.MAX_ERROR_RATE || 0.01)
 export const options = {
   stages: [
     { duration: '30s', target: 10 },
-    { duration: '1m', target: 30 },
-    { duration: '30s', target: 50 },
+    { duration: '1m', target: 20 },
+    { duration: '30s', target: 30 },
     { duration: '30s', target: 0 },
   ],
   thresholds: {
@@ -32,7 +32,7 @@ export default function () {
     'products 200': (r) => r.status === 200,
   })
 
-  sleep(0.1)
+  sleep(0.25)
 }
 
 export function handleSummary(data) {

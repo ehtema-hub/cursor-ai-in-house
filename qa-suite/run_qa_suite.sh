@@ -119,6 +119,7 @@ run_phase "UI / E2E Tests (Playwright)" \
   bash "$ROOT/qa-suite/ui-tests/run-ui-tests.sh"
 
 # ─── Phase 4: Performance (k6 load test) ───
+start_services
 run_phase "Performance Load Test (k6)" \
   bash "$ROOT/qa-suite/performance/run-k6.sh"
 

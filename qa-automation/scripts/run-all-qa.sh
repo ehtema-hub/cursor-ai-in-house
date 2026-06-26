@@ -27,41 +27,12 @@ step "Unit: pytest (backend)" bash "$QA/tests/unit/backend/run-unit.sh" || true
 step "Integration: pytest" bash "$QA/tests/integration/run-integration.sh" || true
 
 # --- Quality ---
-step "ESLint" bash -c "
-  npx eslint frontend/src -c qa-automation/quality/eslint.config.js -f json -o $REPORTS/lint/eslint.json || true
-  node -e \"
-    const fs=require('fs'); const p='$REPORTS/lint/eslint.json';
-    const r=fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):[]; 
-    const s={errorCount:r.reduce((a,f)=>a+f.errorCount,0),warningCount:r.reduce((a,f)=>a+f.warningCount,0)};
-    fs.writeFileSync('$REPORTS/lint/eslint-summary.json',JSON.stringify(s));
-    console.log('ESLint',s.errorCount,'errors',s.warningCount,'warnings');
-  \"
-" || true
+step "ESLint" bash "$QA/quality/run-eslint.sh" || true
 
-step "Pylint" bash -c "
-  cd backend && pip install -q pylint 2>/dev/null; 
-  pylint app --rcfile=../qa-automation/quality/pylint.rc --output-format=json > ../$REPORTS/lint/pylint.json 2>/dev/null || true
-  score=\$(pylint app --rcfile=../qa-automation/quality/pylint.rc --score-only 2>/dev/null | tail -1 | awk '{print \$NF}' || echo 0)
-  node -e \"fs.writeFileSync('../$REPORTS/lint/pylint-summary.json',JSON.stringify({score:parseFloat('$score')||0,issueCount:0}))\"
-  echo Pylint score: \$score
-" || true
+step "Pylint" bash "$QA/quality/run-pylint.sh" || true
 
 # --- Performance ---
-step "Lighthouse" bash -c "
-  cd frontend && npm run build
-  npx @lhci/cli autorun --config=../qa-automation/performance/lighthouse.config.js || true
-  node -e \"
-    const fs=require('fs'),path=require('path');
-    const dir='$REPORTS/lighthouse';
-    let scores={performance:0,accessibility:0,'best-practices':0,seo:0};
-    if(fs.existsSync(dir)) for(const f of fs.readdirSync(dir).filter(x=>x.endsWith('.json'))) {
-      try { const d=JSON.parse(fs.readFileSync(path.join(dir,f))); const c=d.categories||d.lhr?.categories||{};
-        for(const k of Object.keys(scores)) if(c[k]?.score!=null) scores[k]=Math.round(c[k].score*100);
-      } catch{}
-    }
-    fs.writeFileSync('$REPORTS/lighthouse/summary.json',JSON.stringify({scores}));
-  \"
-" || true
+step "Lighthouse" bash "$QA/quality/run-lighthouse.sh" || true
 
 if curl -sf http://127.0.0.1:5000/health >/dev/null 2>&1; then
   step "k6 load test" bash -c "

@@ -2,12 +2,12 @@
   "runId": "qa-suite",
   "commit": "local",
   "branch": "local",
-  "timestamp": "2026-06-23T17:29:53.576075+00:00",
+  "timestamp": "2026-06-26T11:55:40.301753+00:00",
   "overallStatus": "pass",
   "gates": {
     "unit_frontend": {
       "status": "pass",
-      "coverage": 93.72,
+      "coverage": 85.2,
       "passed": 0,
       "failed": 0,
       "total": 0
@@ -27,7 +27,7 @@
       "status": "pass",
       "lighthousePerformance": 0,
       "lighthouseAccessibility": 0,
-      "k6P95Ms": 63.75109999999999
+      "k6P95Ms": 5.271299999999996
     },
     "security": {
       "status": "pass",
