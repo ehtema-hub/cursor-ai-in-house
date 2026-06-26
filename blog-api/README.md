@@ -95,6 +95,16 @@ Protected endpoints require `Authorization: Bearer <token>`.
 | GET | `/api/categories` | List all categories |
 | GET | `/api/search?q=...` | Search posts by title/content |
 
+## Frontend Integration
+
+The ShopVerse frontend (`../frontend/`) consumes this API for the **Blog** section (`#feed`):
+
+- Dev proxy: `/blog-api/*` → `http://localhost:5001/*`
+- Separate JWT (`blog_access_token` in `localStorage`) — synced from main app login when possible
+- Read posts/categories publicly; create posts/comments require blog auth
+
+Start this service alongside the [backend](../backend/README.md) and [frontend](../frontend/README.md) for the full blog experience. Seed categories before first use: `flask seed`.
+
 ## Example Usage
 
 ```bash
