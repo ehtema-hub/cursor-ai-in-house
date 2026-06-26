@@ -30,33 +30,49 @@ fi
 if [ ! -d "$ROOT/qa-suite/ui-tests/node_modules/@playwright/test" ]; then
   echo "Installing Playwright for QA UI tests..."
   npm install --prefix "$ROOT/qa-suite/ui-tests" --no-fund --no-audit
-  npx --prefix "$ROOT/qa-suite/ui-tests" playwright install chromium
 fi
 
+echo "Ensuring Playwright Chromium browser is installed..."
+npx --prefix "$ROOT/qa-suite/ui-tests" playwright install chromium
+
+set +e
 npx --prefix "$ROOT/qa-suite/ui-tests" playwright test \
   --config "$ROOT/qa-suite/ui-tests/playwright.config.mjs" \
   --project=chromium
+PW_EXIT=$?
+set -e
 
 # Summarize for gate checks
+UI_SUMMARY_EXIT=0
 node -e "
 const fs = require('fs');
 const p = '$OUT/results.json';
 if (!fs.existsSync(p)) { console.error('Missing UI test results'); process.exit(1); }
 const r = JSON.parse(fs.readFileSync(p, 'utf8'));
-const passed = (r.suites || []).reduce((s, suite) => s + countPassed(suite), 0);
-const failed = (r.suites || []).reduce((s, suite) => s + countFailed(suite), 0);
-function countPassed(s) {
-  let n = (s.specs || []).filter(x => x.ok).length;
-  for (const c of s.suites || []) n += countPassed(c);
-  return n;
+const stats = r.stats || {};
+let passed = stats.expected;
+let failed = stats.unexpected;
+if (passed === undefined || failed === undefined) {
+  function countPassed(s) {
+    let n = (s.specs || []).filter(x => x.ok).length;
+    for (const c of s.suites || []) n += countPassed(c);
+    return n;
+  }
+  function countFailed(s) {
+    let n = (s.specs || []).filter(x => !x.ok).length;
+    for (const c of s.suites || []) n += countFailed(c);
+    return n;
+  }
+  passed = (r.suites || []).reduce((s, suite) => s + countPassed(suite), 0);
+  failed = (r.suites || []).reduce((s, suite) => s + countFailed(suite), 0);
 }
-function countFailed(s) {
-  let n = (s.specs || []).filter(x => !x.ok).length;
-  for (const c of s.suites || []) n += countFailed(c);
-  return n;
-}
-const summary = { passed, failed, total: passed + failed, passRate: passed / (passed + failed || 1) };
+const total = passed + failed;
+const summary = { passed, failed, total, passRate: total ? passed / total : 0 };
 fs.writeFileSync('$OUT/summary.json', JSON.stringify(summary, null, 2));
 console.log('UI tests:', summary);
 process.exit(failed > 0 ? 1 : 0);
-"
+" || UI_SUMMARY_EXIT=$?
+
+if [ "$PW_EXIT" -ne 0 ] || [ "$UI_SUMMARY_EXIT" -ne 0 ]; then
+  exit 1
+fi

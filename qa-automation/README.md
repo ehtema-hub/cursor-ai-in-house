@@ -12,6 +12,9 @@ qa-automation/
 ├── quality/
 │   ├── eslint.config.js   # Frontend linting
 │   ├── pylint.rc          # Backend linting
+│   ├── run-eslint.sh      # ESLint → reports/output/lint/
+│   ├── run-pylint.sh      # Pylint → reports/output/lint/
+│   ├── run-lighthouse.sh  # Lighthouse CI → reports/output/lighthouse/
 │   └── sonar-project.properties
 ├── security/
 │   ├── zap-config.yaml    # OWASP ZAP configuration
@@ -43,6 +46,9 @@ npm test                                          # Jest unit tests
 bash qa-automation/tests/unit/backend/run-unit.sh
 bash qa-automation/tests/integration/run-integration.sh
 npm run test:e2e                                  # Playwright
+bash qa-automation/quality/run-eslint.sh          # ESLint only
+bash qa-automation/quality/run-pylint.sh          # Pylint only (uses backend/.venv)
+bash qa-automation/quality/run-lighthouse.sh    # Lighthouse only
 bash qa-automation/security/security-scan.sh
 ```
 
