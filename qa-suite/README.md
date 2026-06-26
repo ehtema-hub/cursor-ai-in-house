@@ -40,6 +40,10 @@ qa-suite/
 - **k6** — `brew install k6` or [k6.io](https://k6.io/docs/get-started/installation/)
 - **Snyk CLI** — `npm install -g snyk` + `SNYK_TOKEN` env var
 
+### Optional (for full app demo)
+
+- **Blog API** — `cd blog-api && flask seed && python run.py` (port 5001) for frontend `#feed`
+
 ## Setup
 
 ```bash
@@ -83,12 +87,23 @@ bash qa-suite/security/run-security.sh
 bash qa-suite/ui-tests/run-ui-tests.sh
 
 # Performance only (requires API on :5000)
-cd backend && gunicorn --bind 127.0.0.1:5000 "run:app" &
+cd backend && source .venv/bin/activate && python run.py &
 bash qa-suite/performance/run-k6.sh
 
 # Regenerate dashboard from existing reports
 python3 qa-suite/reporting/generate-dashboard.py
 ```
+
+### Root npm shortcuts
+
+| Command | Description |
+|---------|-------------|
+| `npm run qa:suite` | Full DevSecOps pipeline |
+| `npm run qa:lint` | Code quality phase only |
+| `npm run qa:security` | Security scans |
+| `npm run qa:ui` | Playwright UI tests |
+| `npm run qa:perf` | k6 load test |
+| `npm run qa:dashboard` | Regenerate HTML dashboard |
 
 ## Docker — OWASP ZAP
 

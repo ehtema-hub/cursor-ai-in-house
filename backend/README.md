@@ -1,6 +1,6 @@
 # TaskFlow Support API
 
-Flask REST API for project/task management and a customer support ticket system. Built with Flask-Smorest (OpenAPI 3), SQLAlchemy, JWT authentication, Redis caching, and Celery background jobs.
+Flask REST API for project/task management, customer support tickets, e-commerce endpoints, and notifications. The [ShopVerse frontend](../frontend/README.md) proxies `/api` to this service on port **5000**.
 
 ## Tech Stack
 
@@ -48,7 +48,8 @@ with app.app_context():
 python run.py
 ```
 
-- API base URL: [http://localhost:5000](http://localhost:5000)
+Open [http://localhost:5000](http://localhost:5000). The frontend (`frontend/`) proxies `/api` and `/health` to this service during development.
+
 - Swagger UI: [http://localhost:5000/swagger-ui](http://localhost:5000/swagger-ui)
 - Health check: [http://localhost:5000/health](http://localhost:5000/health)
 
