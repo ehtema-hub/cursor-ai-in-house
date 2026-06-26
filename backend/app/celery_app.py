@@ -6,10 +6,19 @@ celery = Celery("taskflow")
 
 
 def init_celery(app) -> Celery:
+    eager = app.config.get("CELERY_TASK_ALWAYS_EAGER", False)
+    broker_url = app.config["CELERY_BROKER_URL"]
+    result_backend = app.config["CELERY_RESULT_BACKEND"]
+
+    # Eager mode executes tasks in-process; avoid Redis broker/result store locally.
+    if eager:
+        broker_url = "memory://"
+        result_backend = "cache+memory://"
+
     celery.conf.update(
-        broker_url=app.config["CELERY_BROKER_URL"],
-        result_backend=app.config["CELERY_RESULT_BACKEND"],
-        task_always_eager=app.config.get("CELERY_TASK_ALWAYS_EAGER", False),
+        broker_url=broker_url,
+        result_backend=result_backend,
+        task_always_eager=eager,
         task_eager_propagates=app.config.get("CELERY_TASK_EAGER_PROPAGATES", True),
         task_serializer="json",
         accept_content=["json"],

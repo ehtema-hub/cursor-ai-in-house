@@ -52,18 +52,50 @@ run_phase() {
 start_services() {
   if ! curl -sf http://127.0.0.1:5000/health >/dev/null 2>&1; then
     echo "Starting backend API on :5000..."
-    (cd "$ROOT/backend" && gunicorn --bind 127.0.0.1:5000 --workers 2 "run:app") &
+    (
+      cd "$ROOT/backend"
+      if [ -f .venv/bin/activate ]; then
+        # shellcheck source=/dev/null
+        source .venv/bin/activate
+      elif [ -f venv/bin/activate ]; then
+        # shellcheck source=/dev/null
+        source venv/bin/activate
+      fi
+      export FLASK_ENV=development
+      export FLASK_DEBUG=0
+      export CELERY_TASK_ALWAYS_EAGER=true
+      export ALLOW_TEST_RESET=1
+      export RATE_LIMIT_MAX_REQUESTS=1000000
+      export RATE_LIMIT_WINDOW_SECONDS=60
+      flask db upgrade 2>/dev/null || true
+      python run.py
+    ) &
     BACKEND_PID=$!
     for i in $(seq 1 30); do curl -sf http://127.0.0.1:5000/health && break; sleep 1; done
   fi
   if ! curl -sf http://127.0.0.1:4173 >/dev/null 2>&1; then
-    echo "Building and starting frontend preview on :4173..."
-    (cd "$ROOT/frontend" && npm run build && npm run preview -- --port 4173 --host) &
+    echo "Building frontend for preview on :4173..."
+    (cd "$ROOT/frontend" && npm run build)
+    echo "Starting frontend preview on :4173..."
+    (cd "$ROOT/frontend" && npm run preview -- --port 4173 --host --strictPort) &
     PREVIEW_PID=$!
-    for i in $(seq 1 60); do curl -sf http://127.0.0.1:4173 && break; sleep 2; done
+    PREVIEW_READY=0
+    for i in $(seq 1 60); do
+      if curl -sf http://127.0.0.1:4173 >/dev/null 2>&1; then
+        PREVIEW_READY=1
+        echo "Frontend preview ready on :4173"
+        break
+      fi
+      sleep 2
+    done
+    if [ "$PREVIEW_READY" -ne 1 ]; then
+      echo "ERROR: Frontend preview failed to start on :4173"
+      exit 1
+    fi
   fi
   export TARGET_URL=http://127.0.0.1:4173
   export API_URL=http://127.0.0.1:5000
+  export UI_BASE_URL=http://127.0.0.1:4173
 }
 
 cleanup() {
@@ -82,6 +114,7 @@ run_phase "Security Scanning (Snyk + OWASP ZAP)" \
   bash "$ROOT/qa-suite/security/run-security.sh"
 
 # ─── Phase 3: UI / E2E Tests (Playwright POM) ───
+start_services
 run_phase "UI / E2E Tests (Playwright)" \
   bash "$ROOT/qa-suite/ui-tests/run-ui-tests.sh"
 

@@ -1,25 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { Navbar, type NavLink, type UserMenuItem } from '@/components'
+import { Navbar } from '@/components'
 import { ProductCardDemo } from '@/pages/ProductCardDemo'
 import { UserProfileDemo } from '@/pages/UserProfileDemo'
-import { TaskDashboard } from '@/pages/TaskDashboard'
 import { AnalyticsDashboard } from '@/pages/AnalyticsDashboard'
 import { QADashboard } from '@/pages/QADashboard'
 import { FeedPage } from '@/pages/FeedPage'
-import { LoginPage } from '@/pages/LoginPage'
-import { RegisterPage } from '@/pages/RegisterPage'
+import {
+  buildNavLinks,
+  buildUserMenuItems,
+  getPageFromHash,
+  type DemoPage,
+} from '@/app/navConfig'
+import { TasksPageGate } from '@/app/TasksPageGate'
 
-type DemoPage = 'tasks' | 'analytics' | 'products' | 'profiles' | 'feed' | 'qa'
 type AuthView = 'login' | 'register'
-
-const getPageFromHash = (): DemoPage => {
-  const hash = window.location.hash.replace('#', '')
-  if (['tasks', 'analytics', 'products', 'profiles', 'feed', 'qa'].includes(hash)) {
-    return hash as DemoPage
-  }
-  return 'tasks' // Default to tasks for authentication flow
-}
 
 function App() {
   const { user, isLoading, logout: authLogout } = useAuth()
@@ -49,137 +44,35 @@ function App() {
     : 'https://api.dicebear.com/9.x/avataaars/svg?seed=Guest'
   const userName = user?.name ?? 'Guest'
 
-  const navLinks: NavLink[] = [
-    {
-      label: 'Products',
-      href: '#products',
-      isActive: page === 'products',
-      onClick: (event) => {
-        event.preventDefault()
-        handlePageChange('products')
-      },
-    },
-    {
-      label: 'Profiles',
-      href: '#profiles',
-      isActive: page === 'profiles',
-      onClick: (event) => {
-        event.preventDefault()
-        handlePageChange('profiles')
-      },
-    },
-    {
-      label: 'Tasks',
-      href: '#tasks',
-      isActive: page === 'tasks',
-      onClick: (event) => {
-        event.preventDefault()
-        handlePageChange('tasks')
-      },
-    },
-    {
-      label: 'Feed',
-      href: '#feed',
-      isActive: page === 'feed',
-      onClick: (event) => {
-        event.preventDefault()
-        handlePageChange('feed')
-      },
-    },
-    {
-      label: 'Analytics',
-      href: '#analytics',
-      isActive: page === 'analytics',
-      onClick: (event) => {
-        event.preventDefault()
-        handlePageChange('analytics')
-      },
-    },
-    {
-      label: 'QA',
-      href: '#qa',
-      isActive: page === 'qa',
-      onClick: (event) => {
-        event.preventDefault()
-        handlePageChange('qa')
-      },
-    },
-  ]
-
-  const userMenuItems: UserMenuItem[] = [
-    {
-      label: 'Task Dashboard',
-      href: '#tasks',
-      icon: 'profile',
-      onClick: () => handlePageChange('tasks'),
-    },
-    {
-      label: 'Analytics',
-      href: '#analytics',
-      icon: 'settings',
-      onClick: () => handlePageChange('analytics'),
-    },
-    {
-      label: 'Team Feed',
-      href: '#feed',
-      icon: 'profile',
-      onClick: () => handlePageChange('feed'),
-    },
-    {
-      label: 'Products Demo',
-      href: '#products',
-      icon: 'profile',
-      onClick: () => handlePageChange('products'),
-    },
-    {
-      label: 'Profiles Demo',
-      href: '#profiles',
-      icon: 'settings',
-      onClick: () => handlePageChange('profiles'),
-    },
-    {
-      label: 'Sign out',
-      href: '#signout',
-      icon: 'logout',
-      onClick: () => handleLogout(),
-    },
-  ]
-
   return (
     <>
       <Navbar
         brandName="ShopVerse"
-        links={navLinks}
+        links={buildNavLinks(page, handlePageChange)}
         userAvatarUrl={userAvatarUrl}
         userName={userName}
         searchPlaceholder="Search products, brands…"
         onSearch={(query) => {
           if (query) alert(`Searching for "${query}"…`)
         }}
-        userMenuItems={userMenuItems}
+        userMenuItems={buildUserMenuItems(handlePageChange, handleLogout)}
       />
 
       {page === 'products' && <ProductCardDemo />}
       {page === 'profiles' && <UserProfileDemo />}
 
-      {page === 'tasks' && (isLoading ? (
-        <div className="flex min-h-screen items-center justify-center text-gray-500">
-          Loading…
-        </div>
-      ) : !user ? (
-        authView === 'login' ? (
-          <LoginPage onSwitchToRegister={() => setAuthView('register')} />
-        ) : (
-          <RegisterPage onSwitchToLogin={() => setAuthView('login')} />
-        )
-      ) : (
-        <TaskDashboard
+      {page === 'tasks' && (
+        <TasksPageGate
           user={user}
+          isLoading={isLoading}
+          authView={authView}
+          onSwitchToRegister={() => setAuthView('register')}
+          onSwitchToLogin={() => setAuthView('login')}
           onLogout={handleLogout}
           onNavigateAway={() => handlePageChange('products')}
           onNavigateToAnalytics={() => handlePageChange('analytics')}
         />
-      ))}
+      )}
 
       {page === 'analytics' && (
         <AnalyticsDashboard onNavigateAway={() => handlePageChange('tasks')} />

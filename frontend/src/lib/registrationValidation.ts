@@ -22,6 +22,39 @@ function digitsOnly(value: string) {
   return value.replace(/\D/g, '')
 }
 
+function validateRequiredName(
+  value: string,
+  label: string,
+  limits: { min: number; max: number },
+): string | undefined {
+  const trimmed = value.trim()
+  if (!trimmed) return `${label} is required.`
+  if (trimmed.length < limits.min) {
+    return `${label} must be at least ${limits.min} characters.`
+  }
+  if (trimmed.length > limits.max) {
+    return `${label} must be no more than ${limits.max} characters.`
+  }
+  return undefined
+}
+
+function validateEmail(value: string): string | undefined {
+  const trimmed = value.trim()
+  if (!trimmed) return 'Email is required.'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return 'Please enter a valid email address.'
+  }
+  return undefined
+}
+
+function validatePhone(value: string): string | undefined {
+  if (!value.trim()) return 'Phone number is required.'
+  if (digitsOnly(value).length < FIELD_LIMITS.phone.min) {
+    return 'Please enter a valid phone number with 10 digits.'
+  }
+  return undefined
+}
+
 export function validateStep1(data: {
   firstName: string
   lastName: string
@@ -30,34 +63,25 @@ export function validateStep1(data: {
 }): RegistrationFieldErrors {
   const errors: RegistrationFieldErrors = {}
 
-  if (!data.firstName.trim()) {
-    errors['first-name'] = 'First name is required.'
-  } else if (data.firstName.trim().length < FIELD_LIMITS.firstName.min) {
-    errors['first-name'] = `First name must be at least ${FIELD_LIMITS.firstName.min} characters.`
-  } else if (data.firstName.trim().length > FIELD_LIMITS.firstName.max) {
-    errors['first-name'] = `First name must be no more than ${FIELD_LIMITS.firstName.max} characters.`
-  }
+  const firstNameError = validateRequiredName(
+    data.firstName,
+    'First name',
+    FIELD_LIMITS.firstName,
+  )
+  if (firstNameError) errors['first-name'] = firstNameError
 
-  if (!data.lastName.trim()) {
-    errors['last-name'] = 'Last name is required.'
-  } else if (data.lastName.trim().length < FIELD_LIMITS.lastName.min) {
-    errors['last-name'] = `Last name must be at least ${FIELD_LIMITS.lastName.min} characters.`
-  } else if (data.lastName.trim().length > FIELD_LIMITS.lastName.max) {
-    errors['last-name'] = `Last name must be no more than ${FIELD_LIMITS.lastName.max} characters.`
-  }
+  const lastNameError = validateRequiredName(
+    data.lastName,
+    'Last name',
+    FIELD_LIMITS.lastName,
+  )
+  if (lastNameError) errors['last-name'] = lastNameError
 
-  if (!data.email.trim()) {
-    errors.email = 'Email is required.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
-    errors.email = 'Please enter a valid email address.'
-  }
+  const emailError = validateEmail(data.email)
+  if (emailError) errors.email = emailError
 
-  const phoneDigits = digitsOnly(data.phone)
-  if (!data.phone.trim()) {
-    errors.phone = 'Phone number is required.'
-  } else if (phoneDigits.length < FIELD_LIMITS.phone.min) {
-    errors.phone = 'Please enter a valid phone number with 10 digits.'
-  }
+  const phoneError = validatePhone(data.phone)
+  if (phoneError) errors.phone = phoneError
 
   return errors
 }

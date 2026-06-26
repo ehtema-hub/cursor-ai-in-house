@@ -98,19 +98,26 @@ class UserDetail(MethodView):
         if target is None:
             raise SupportAPIError("User not found.", "NOT_FOUND", 404)
 
-        if "name" in data and data["name"]:
-            target.name = data["name"].strip()
-        if "role" in data and data["role"]:
-            target.role = data["role"]
-        if "availability_status" in data and data["availability_status"]:
-            target.availability_status = data["availability_status"]
-        if "expertise_areas" in data and data["expertise_areas"] is not None:
-            target.expertise_areas = data["expertise_areas"]
-        if "is_active" in data and data["is_active"] is not None:
-            target.is_active = data["is_active"]
+        _apply_user_updates(target, data)
 
         db.session.commit()
         return target
+
+
+def _apply_user_updates(target: User, data: dict) -> None:
+    field_setters = {
+        "name": lambda value: setattr(target, "name", value.strip()),
+        "role": lambda value: setattr(target, "role", value),
+        "availability_status": lambda value: setattr(target, "availability_status", value),
+    }
+    for field, setter in field_setters.items():
+        value = data.get(field)
+        if value:
+            setter(value)
+    if data.get("expertise_areas") is not None:
+        target.expertise_areas = data["expertise_areas"]
+    if data.get("is_active") is not None:
+        target.is_active = data["is_active"]
 
 
 @blp.route("/me/notifications")

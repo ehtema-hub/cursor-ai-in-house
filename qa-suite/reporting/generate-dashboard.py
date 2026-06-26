@@ -185,7 +185,9 @@ def main() -> int:
         "gates": {g["name"]: g for g in gates},
     }
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
-    (ROOT / "public/qa/summary.json").write_text(json.dumps({
+    frontend_qa = ROOT / "frontend/public/qa"
+    frontend_qa.mkdir(parents=True, exist_ok=True)
+    (frontend_qa / "summary.json").write_text(json.dumps({
         "runId": "qa-suite",
         "commit": "local",
         "branch": "local",

@@ -1,43 +1,36 @@
 {
-  "runId": "local",
+  "runId": "qa-suite",
   "commit": "local",
   "branch": "local",
-  "timestamp": "2026-06-18T08:56:16.073412+00:00",
-  "overallStatus": "warn",
+  "timestamp": "2026-06-23T17:29:53.576075+00:00",
+  "overallStatus": "pass",
   "gates": {
     "unit_frontend": {
-      "status": "unknown",
+      "status": "pass",
+      "coverage": 93.72,
       "passed": 0,
-      "coverage": 0,
       "failed": 0,
       "total": 0
     },
     "unit_backend": {
       "status": "unknown",
-      "passed": false,
-      "coverage": 0,
-      "unit": {},
-      "integration": {}
+      "coverage": 0
     },
     "lint": {
-      "status": "warn",
-      "passed": false,
+      "status": "pass",
       "eslintErrors": 0,
       "eslintWarnings": 0,
       "pylintScore": 0,
       "pylintIssues": 0
     },
     "performance": {
-      "status": "unknown",
-      "passed": false,
+      "status": "pass",
       "lighthousePerformance": 0,
       "lighthouseAccessibility": 0,
-      "k6P95Ms": null,
-      "k6FailedRate": null
+      "k6P95Ms": 63.75109999999999
     },
     "security": {
       "status": "pass",
-      "passed": true,
       "zapHigh": 0,
       "zapMedium": 0,
       "zapLow": 0,

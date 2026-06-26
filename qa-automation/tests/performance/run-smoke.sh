@@ -2,7 +2,7 @@
 # API performance smoke test (curl-based).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 REPORTS="$ROOT/qa-automation/reports/output/performance"
 mkdir -p "$REPORTS"
 

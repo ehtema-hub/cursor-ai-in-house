@@ -6,6 +6,17 @@ ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 REPORTS="$ROOT/qa-automation/reports/output"
 cd "$ROOT/backend"
 
+if [ -f .venv/bin/activate ]; then
+  # shellcheck source=/dev/null
+  source .venv/bin/activate
+elif [ -f venv/bin/activate ]; then
+  # shellcheck source=/dev/null
+  source venv/bin/activate
+else
+  echo "No virtualenv in backend/. Run: cd backend && python -m venv .venv && pip install -r requirements.txt"
+  exit 1
+fi
+
 mkdir -p "$REPORTS/tests" "$REPORTS/coverage/backend"
 
 export FLASK_ENV=testing
@@ -21,6 +32,7 @@ UNIT_PATHS=(
 )
 
 pytest -q "${UNIT_PATHS[@]}" \
+  --override-ini='addopts=' \
   --cov=app.services --cov=app.models.task --cov=app.models.project \
   --cov-report=json:"$REPORTS/coverage/backend/unit-coverage.json" \
   --junitxml="$REPORTS/tests/unit-pytest-junit.xml"
