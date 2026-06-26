@@ -7,8 +7,8 @@ import { formatRelativeTime } from '@/lib/socialUtils'
 export interface CommentSectionProps {
   postId: string
   comments: Comment[]
-  currentUser: SocialUser
-  onAddComment: (postId: string, content: string) => void
+  currentUser?: SocialUser
+  onAddComment: (postId: string, content: string) => void | Promise<void>
 }
 
 export function CommentSection({
@@ -70,39 +70,41 @@ export function CommentSection({
         </ul>
       )}
 
-      <div className="flex items-end gap-2">
-        <UserAvatar
-          name={currentUser.name}
-          avatarUrl={currentUser.avatarUrl}
-          size="sm"
-        />
-        <div className="min-w-0 flex-1">
-          <label htmlFor={`comment-input-${postId}`} className="sr-only">
-            Write a comment
-          </label>
-          <textarea
-            id={`comment-input-${postId}`}
-            data-testid={`comment-input-${postId}`}
-            rows={isExpanded ? 2 : 1}
-            placeholder="Write a comment…"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => setIsExpanded(true)}
-            onKeyDown={handleKeyDown}
-            className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white dark:placeholder:text-gray-500"
+      {currentUser && (
+        <div className="flex items-end gap-2">
+          <UserAvatar
+            name={currentUser.name}
+            avatarUrl={currentUser.avatarUrl}
+            size="sm"
           />
+          <div className="min-w-0 flex-1">
+            <label htmlFor={`comment-input-${postId}`} className="sr-only">
+              Write a comment
+            </label>
+            <textarea
+              id={`comment-input-${postId}`}
+              data-testid={`comment-input-${postId}`}
+              rows={isExpanded ? 2 : 1}
+              placeholder="Write a comment…"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onFocus={() => setIsExpanded(true)}
+              onKeyDown={handleKeyDown}
+              className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white dark:placeholder:text-gray-500"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!draft.trim()}
+            aria-label="Post comment"
+            data-testid={`comment-submit-${postId}`}
+            className="shrink-0 rounded-full bg-indigo-600 p-2 text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Send aria-hidden="true" className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!draft.trim()}
-          aria-label="Post comment"
-          data-testid={`comment-submit-${postId}`}
-          className="shrink-0 rounded-full bg-indigo-600 p-2 text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Send aria-hidden="true" className="h-4 w-4" />
-        </button>
-      </div>
+      )}
     </div>
   )
 }

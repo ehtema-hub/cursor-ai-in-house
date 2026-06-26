@@ -15,6 +15,9 @@ export interface Comment {
 
 export interface Post {
   id: string
+  title?: string
+  categoryId?: number
+  categoryName?: string
   author: SocialUser
   content: string
   imageUrl?: string
@@ -26,8 +29,9 @@ export interface Post {
 }
 
 export interface CreatePostData {
+  title: string
   content: string
-  imageUrl?: string
+  category_id: number
 }
 
 export interface CreateCommentData {

@@ -5,6 +5,7 @@ import {
   setTokens,
   ApiError,
 } from '@/lib/api'
+import { clearBlogAccessToken, ensureBlogSession } from '@/lib/blogAuth'
 import { validateLoginInput, validateRegisterInput } from '@/lib/authValidation'
 import type { ApiUser } from '@/lib/mappers'
 
@@ -87,12 +88,13 @@ export async function registerUser(
     return { error: 'Unable to register. Please try again.' }
   }
 
-  return loginUser(email, password)
+  return loginUser(email, password, name.trim())
 }
 
 export async function loginUser(
   email: string,
   password: string,
+  displayName?: string,
 ): Promise<{ user?: User; error?: string }> {
   const validationError = validateLoginInput(email, password)
   if (validationError) return { error: validationError }
@@ -111,6 +113,7 @@ export async function loginUser(
     )
     setTokens(tokens.access_token, tokens.refresh_token)
     const user = await fetchCurrentUser()
+    void ensureBlogSession(email, password, displayName ?? user.name)
     return { user }
   } catch (error) {
     clearTokens()
@@ -134,6 +137,7 @@ export async function logoutUser() {
     // ignore logout errors — clear local session regardless
   } finally {
     clearTokens()
+    clearBlogAccessToken()
     setSession(null)
   }
 }
@@ -157,5 +161,6 @@ export async function restoreSession(): Promise<User | null> {
 /** Clears all auth data — used by E2E tests for isolation */
 export function clearAuthStorage() {
   clearTokens()
+  clearBlogAccessToken()
   localStorage.removeItem(SESSION_KEY)
 }
