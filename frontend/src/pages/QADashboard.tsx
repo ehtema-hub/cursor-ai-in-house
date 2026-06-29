@@ -9,26 +9,52 @@ import {
   Code2,
   Sparkles,
   XCircle,
+  LayoutDashboard,
 } from 'lucide-react'
 
 type GateStatus = 'pass' | 'fail' | 'warn' | 'unknown'
 
+interface TestGate {
+  status: GateStatus
+  passed?: number
+  failed?: number
+  total?: number
+  coverage?: number
+}
+
+interface QualityGate {
+  name: string
+  status: string
+  detail: string
+  passed: boolean
+}
+
 interface QASummary {
   runId: string
+  source?: string
   commit: string
   branch: string
   timestamp: string
   overallStatus: GateStatus
+  qualityGates?: QualityGate[]
   gates: {
-    unit_frontend: { status: GateStatus; coverage: number; passed: number; failed: number; total: number }
-    unit_backend: { status: GateStatus; coverage: number }
-    lint: { status: GateStatus; eslintErrors: number; eslintWarnings: number; pylintScore: number; pylintIssues: number }
+    unit_frontend: TestGate
+    ui_e2e?: TestGate
+    unit_backend: { status: GateStatus; coverage: number; unit?: object; integration?: object }
+    lint: {
+      status: GateStatus
+      eslintErrors: number
+      eslintWarnings: number
+      pylintScore: number
+      pylintIssues: number
+    }
     performance: {
       status: GateStatus
       lighthousePerformance: number
       lighthouseAccessibility: number
       k6P95Ms: number | null
-      k6FailedRate: number | null
+      k6AvgMs?: number | null
+      k6ErrorRate?: number | null
     }
     security: {
       status: GateStatus
@@ -61,6 +87,11 @@ const statusStyles: Record<GateStatus, string> = {
   fail: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
   warn: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
   unknown: 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700',
+}
+
+function normalizeStatus(status: string): GateStatus {
+  if (status === 'pass' || status === 'fail' || status === 'warn') return status
+  return 'unknown'
 }
 
 function StatusBadge({ status }: { status: GateStatus }) {
@@ -98,6 +129,19 @@ function MetricCard({
   )
 }
 
+function GateCard({ gate }: { gate: QualityGate }) {
+  const status = normalizeStatus(gate.status)
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{gate.name}</h3>
+        <StatusBadge status={status} />
+      </div>
+      <p className="text-sm text-gray-600 dark:text-gray-300">{gate.detail}</p>
+    </div>
+  )
+}
+
 const priorityColors = {
   critical: 'border-l-red-500 bg-red-50 dark:bg-red-950/30',
   high: 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/30',
@@ -124,15 +168,21 @@ export function QADashboard({ onNavigateAway }: QADashboardProps) {
         ])
         if (summaryRes.ok) setSummary(await summaryRes.json())
         if (recsRes.ok) setRecommendations(await recsRes.json())
-        if (!summaryRes.ok) setError('No QA data yet — run `bash scripts/qa/run-all.sh` or wait for CI.')
+        if (!summaryRes.ok) {
+          setError('No QA data yet — run `npm run qa:suite` or `npm run qa` first.')
+        }
       } catch {
         setError('Failed to load QA dashboard data.')
       } finally {
         setLoading(false)
       }
     }
-    load()
+    void load()
   }, [])
+
+  const frontend = summary?.gates.unit_frontend
+  const uiE2e = summary?.gates.ui_e2e
+  const showJestCounts = (frontend?.total ?? 0) > 0
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -143,7 +193,7 @@ export function QADashboard({ onNavigateAway }: QADashboardProps) {
               QA Quality Dashboard
             </h1>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Unified test, lint, security, and performance reporting.
+              Quality gates, test results, lint, security, and performance.
             </p>
           </div>
           {onNavigateAway && (
@@ -172,6 +222,11 @@ export function QADashboard({ onNavigateAway }: QADashboardProps) {
           <>
             <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
               <StatusBadge status={summary.overallStatus} />
+              {summary.source && (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Source: <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">{summary.source}</code>
+                </span>
+              )}
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 Branch <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">{summary.branch}</code>
               </span>
@@ -183,26 +238,74 @@ export function QADashboard({ onNavigateAway }: QADashboardProps) {
               </span>
             </div>
 
+            {summary.qualityGates && summary.qualityGates.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <LayoutDashboard className="h-5 w-5 text-indigo-500" />
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Quality Gates
+                  </h2>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {summary.qualityGates.map((gate) => (
+                    <GateCard key={gate.name} gate={gate} />
+                  ))}
+                </div>
+              </section>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <MetricCard title="Frontend (Jest)" icon={TestTube2} status={summary.gates.unit_frontend.status}>
-                <p>{summary.gates.unit_frontend.passed}/{summary.gates.unit_frontend.total} tests passed</p>
-                <p>Coverage: {summary.gates.unit_frontend.coverage}%</p>
+              {uiE2e && (uiE2e.total ?? 0) > 0 && (
+                <MetricCard title="UI / E2E (Playwright)" icon={TestTube2} status={uiE2e.status}>
+                  <p>{uiE2e.passed}/{uiE2e.total} tests passed</p>
+                  {(uiE2e.failed ?? 0) > 0 && (
+                    <p className="text-red-600 dark:text-red-400">{uiE2e.failed} failed</p>
+                  )}
+                </MetricCard>
+              )}
+
+              <MetricCard
+                title={showJestCounts ? 'Frontend (Jest)' : 'Frontend Coverage'}
+                icon={TestTube2}
+                status={frontend?.status ?? 'unknown'}
+              >
+                {showJestCounts ? (
+                  <p>{frontend?.passed}/{frontend?.total} unit tests passed</p>
+                ) : (
+                  <p>Run Jest via QA pipeline for per-test counts</p>
+                )}
+                <p>Coverage: {frontend?.coverage ?? 0}%</p>
               </MetricCard>
 
               <MetricCard title="Backend (pytest)" icon={TestTube2} status={summary.gates.unit_backend.status}>
                 <p>Coverage: {summary.gates.unit_backend.coverage}%</p>
+                {summary.gates.unit_backend.integration && (
+                  <p className="text-xs text-gray-500">
+                    Integration: {(summary.gates.unit_backend.integration as { coveragePercent?: number }).coveragePercent ?? 'n/a'}%
+                  </p>
+                )}
               </MetricCard>
 
               <MetricCard title="Code Quality" icon={Code2} status={summary.gates.lint.status}>
                 <p>ESLint: {summary.gates.lint.eslintErrors} errors, {summary.gates.lint.eslintWarnings} warnings</p>
-                <p>Pylint: {summary.gates.lint.pylintScore}/10 ({summary.gates.lint.pylintIssues} issues)</p>
+                <p>Pylint: {summary.gates.lint.pylintScore}/10</p>
               </MetricCard>
 
               <MetricCard title="Performance" icon={Gauge} status={summary.gates.performance.status}>
-                <p>Lighthouse perf: {summary.gates.performance.lighthousePerformance}/100</p>
-                <p>Lighthouse a11y: {summary.gates.performance.lighthouseAccessibility}/100</p>
+                {summary.gates.performance.lighthousePerformance > 0 && (
+                  <p>Lighthouse perf: {summary.gates.performance.lighthousePerformance}/100</p>
+                )}
+                {summary.gates.performance.lighthouseAccessibility > 0 && (
+                  <p>Lighthouse a11y: {summary.gates.performance.lighthouseAccessibility}/100</p>
+                )}
                 {summary.gates.performance.k6P95Ms != null && (
                   <p>k6 p95: {Math.round(summary.gates.performance.k6P95Ms)}ms</p>
+                )}
+                {summary.gates.performance.k6AvgMs != null && (
+                  <p>k6 avg: {summary.gates.performance.k6AvgMs.toFixed(1)}ms</p>
+                )}
+                {summary.gates.performance.k6ErrorRate != null && (
+                  <p>k6 errors: {(summary.gates.performance.k6ErrorRate * 100).toFixed(2)}%</p>
                 )}
               </MetricCard>
 
@@ -213,7 +316,7 @@ export function QADashboard({ onNavigateAway }: QADashboardProps) {
 
               <MetricCard title="CI Run" icon={Activity} status={summary.overallStatus}>
                 <p>Run ID: {summary.runId}</p>
-                <p>Tools: Jest, pytest, ESLint, Pylint, k6, Lighthouse, ZAP, Snyk</p>
+                <p>Tools: Jest, pytest, Playwright, ESLint, Pylint, k6, ZAP, Snyk</p>
               </MetricCard>
             </div>
           </>
@@ -224,7 +327,7 @@ export function QADashboard({ onNavigateAway }: QADashboardProps) {
             <div className="mb-4 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-violet-500" />
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                AI Improvement Recommendations
+                Improvement Recommendations
               </h2>
               <span className="text-sm text-gray-500">({recommendations.recommendationCount})</span>
             </div>

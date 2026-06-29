@@ -174,6 +174,127 @@ def render_html(gates: list[dict], overall: str) -> str:
 </html>"""
 
 
+def build_frontend_summary(gates: list[dict]) -> dict:
+    """Build in-app QA dashboard payload from qa-suite report artifacts."""
+    eslint = read_json(OUT / "code-quality/eslint-summary.json")
+    pylint = read_json(OUT / "code-quality/pylint-summary.json")
+    coverage = read_json(OUT / "code-quality/coverage-frontend.json")
+    jest = read_json(OUT / "code-quality/jest-results.json")
+    ui = read_json(OUT / "ui-tests/summary.json")
+    k6 = read_json(OUT / "performance/k6-summary.json")
+    snyk = read_json(OUT / "security/snyk-summary.json")
+    zap = read_json(OUT / "security/zap-summary.json")
+
+    qa_auto = ROOT / "qa-automation/reports/output"
+    if not jest:
+        jest = read_json(qa_auto / "tests/jest-results.json")
+    pytest_unit = read_json(qa_auto / "tests/unit-pytest-summary.json")
+    pytest_integration = read_json(qa_auto / "tests/integration-pytest-summary.json")
+
+    jest_passed = jest.get("numPassedTests", 0) if jest else 0
+    jest_failed = jest.get("numFailedTests", 0) if jest else 0
+    jest_total = jest.get("numTotalTests", 0) if jest else 0
+    cov_pct = coverage.get("coveragePercent", 0)
+
+    if jest_total > 0:
+        jest_status = "pass" if jest_failed == 0 else "fail"
+    elif coverage.get("passed"):
+        jest_status = "pass"
+    else:
+        jest_status = "unknown"
+
+    ui_passed = ui.get("passed", 0)
+    ui_failed = ui.get("failed", 0)
+    ui_total = ui.get("total", 0)
+    if ui_total > 0:
+        ui_status = "pass" if ui_failed == 0 else "fail"
+    else:
+        ui_status = "unknown"
+
+    backend_cov = (
+        pytest_integration.get("coveragePercent")
+        or pytest_unit.get("coveragePercent")
+        or 0
+    )
+    if backend_cov >= 80:
+        backend_status = "pass"
+    elif backend_cov > 0:
+        backend_status = "warn"
+    else:
+        backend_status = "unknown"
+
+    k6_metrics = k6.get("metrics", {})
+    lint_gate = next((g for g in gates if g["name"] == "Linting & Complexity"), None)
+    sec_gate = next((g for g in gates if g["name"] == "Security (0 Critical)"), None)
+    perf_gate = next((g for g in gates if g["name"] == "Performance (k6)"), None)
+
+    overall = "pass" if all(g["passed"] for g in gates) else "fail"
+
+    return {
+        "runId": "qa-suite",
+        "source": "qa-suite",
+        "commit": "local",
+        "branch": "local",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "overallStatus": overall,
+        "qualityGates": [
+            {
+                "name": g["name"],
+                "status": g["status"],
+                "detail": g["detail"],
+                "passed": g["passed"],
+            }
+            for g in gates
+        ],
+        "gates": {
+            "unit_frontend": {
+                "status": jest_status,
+                "coverage": cov_pct,
+                "passed": jest_passed,
+                "failed": jest_failed,
+                "total": jest_total,
+            },
+            "ui_e2e": {
+                "status": ui_status,
+                "passed": ui_passed,
+                "failed": ui_failed,
+                "total": ui_total,
+            },
+            "unit_backend": {
+                "status": backend_status,
+                "coverage": backend_cov,
+                "unit": pytest_unit,
+                "integration": pytest_integration,
+            },
+            "lint": {
+                "status": "pass" if lint_gate and lint_gate["passed"] else "fail",
+                "eslintErrors": eslint.get("errors", eslint.get("errorCount", 0)),
+                "eslintWarnings": eslint.get("warnings", eslint.get("warningCount", 0)),
+                "pylintScore": pylint.get("score", 0),
+                "pylintIssues": pylint.get("issueCount", 0),
+            },
+            "performance": {
+                "status": "pass" if perf_gate and perf_gate["passed"] else "fail",
+                "lighthousePerformance": 0,
+                "lighthouseAccessibility": 0,
+                "k6P95Ms": k6_metrics.get("p95Ms"),
+                "k6AvgMs": k6_metrics.get("avgMs"),
+                "k6ErrorRate": k6_metrics.get("errorRate"),
+            },
+            "security": {
+                "status": "pass" if sec_gate and sec_gate["passed"] else "fail",
+                "zapHigh": zap.get("high", 0),
+                "zapMedium": zap.get("medium", 0),
+                "zapLow": zap.get("low", 0),
+                "zapCritical": zap.get("critical", 0),
+                "snykHigh": snyk.get("high", 0),
+                "snykMedium": snyk.get("medium", 0),
+                "snykCritical": snyk.get("critical", 0),
+            },
+        },
+    }
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     gates, all_pass = evaluate_gates()
@@ -187,20 +308,9 @@ def main() -> int:
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
     frontend_qa = ROOT / "frontend/public/qa"
     frontend_qa.mkdir(parents=True, exist_ok=True)
-    (frontend_qa / "summary.json").write_text(json.dumps({
-        "runId": "qa-suite",
-        "commit": "local",
-        "branch": "local",
-        "timestamp": summary["timestamp"],
-        "overallStatus": summary["overallStatus"],
-        "gates": {
-            "unit_frontend": {"status": "pass" if gates[1]["passed"] else "fail", "coverage": summary["gates"]["Code Coverage"]["metrics"].get("coveragePercent", 0), "passed": 0, "failed": 0, "total": 0},
-            "unit_backend": {"status": "unknown", "coverage": 0},
-            "lint": {"status": "pass" if gates[0]["passed"] else "fail", "eslintErrors": 0, "eslintWarnings": 0, "pylintScore": 0, "pylintIssues": 0},
-            "performance": {"status": "pass" if gates[4]["passed"] else "fail", "lighthousePerformance": 0, "lighthouseAccessibility": 0, "k6P95Ms": summary["gates"]["Performance (k6)"]["metrics"].get("metrics", {}).get("p95Ms")},
-            "security": {"status": "pass" if gates[2]["passed"] else "fail", "zapHigh": 0, "zapMedium": 0, "zapLow": 0, "snykHigh": 0, "snykMedium": 0},
-        },
-    }, indent=2))
+    (frontend_qa / "summary.json").write_text(
+        json.dumps(build_frontend_summary(gates), indent=2)
+    )
 
     html = render_html(gates, overall)
     (OUT / "dashboard.html").write_text(html)

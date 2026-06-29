@@ -70,12 +70,10 @@ def create_app(config_name: str = "development") -> Flask:
 
     @flask_app.cli.command("seed")
     def seed_data():
-        """Seed default blog categories."""
-        defaults = ["Technology", "Travel", "Food", "Lifestyle", "Programming"]
-        for name in defaults:
-            if not Category.query.filter_by(name=name).first():
-                db.session.add(Category(name=name))
-        db.session.commit()
-        print("Seeded categories.")
+        """Seed categories, demo authors, posts, and comments."""
+        from app.models import Category, Comment, Post, User
+        from app.seed_data import seed_blog_demo
+
+        seed_blog_demo(db, User, Category, Post, Comment)
 
     return flask_app

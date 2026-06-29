@@ -1,41 +1,92 @@
 {
   "runId": "qa-suite",
+  "source": "qa-suite",
   "commit": "local",
   "branch": "local",
-  "timestamp": "2026-06-26T11:55:40.301753+00:00",
+  "timestamp": "2026-06-29T11:41:22.222839+00:00",
   "overallStatus": "pass",
+  "qualityGates": [
+    {
+      "name": "Linting & Complexity",
+      "status": "pass",
+      "detail": "ESLint 0 errors, 0 CC violations; Pylint 8.47/10",
+      "passed": true
+    },
+    {
+      "name": "Code Coverage",
+      "status": "pass",
+      "detail": "Frontend coverage 85.2% (minimum 80%)",
+      "passed": true
+    },
+    {
+      "name": "Security (0 Critical)",
+      "status": "pass",
+      "detail": "Snyk critical=0, ZAP critical=0",
+      "passed": true
+    },
+    {
+      "name": "UI / E2E Tests",
+      "status": "pass",
+      "detail": "8/8 passed (100%)",
+      "passed": true
+    },
+    {
+      "name": "Performance (k6)",
+      "status": "pass",
+      "detail": "avg 3ms, error rate 0.00%",
+      "passed": true
+    }
+  ],
   "gates": {
     "unit_frontend": {
       "status": "pass",
       "coverage": 85.2,
-      "passed": 0,
+      "passed": 58,
       "failed": 0,
-      "total": 0
+      "total": 58
+    },
+    "ui_e2e": {
+      "status": "pass",
+      "passed": 8,
+      "failed": 0,
+      "total": 8
     },
     "unit_backend": {
-      "status": "unknown",
-      "coverage": 0
+      "status": "warn",
+      "coverage": 79.1,
+      "unit": {
+        "suite": "unit",
+        "coveragePercent": 77.8
+      },
+      "integration": {
+        "suite": "integration",
+        "coveragePercent": 79.1
+      }
     },
     "lint": {
       "status": "pass",
       "eslintErrors": 0,
-      "eslintWarnings": 0,
-      "pylintScore": 0,
+      "eslintWarnings": 6,
+      "pylintScore": 8.47,
       "pylintIssues": 0
     },
     "performance": {
       "status": "pass",
       "lighthousePerformance": 0,
       "lighthouseAccessibility": 0,
-      "k6P95Ms": 5.271299999999996
+      "k6P95Ms": 5.271299999999996,
+      "k6AvgMs": 2.507125354796064,
+      "k6ErrorRate": 0
     },
     "security": {
       "status": "pass",
       "zapHigh": 0,
       "zapMedium": 0,
       "zapLow": 0,
+      "zapCritical": 0,
       "snykHigh": 0,
-      "snykMedium": 0
+      "snykMedium": 0,
+      "snykCritical": 0
     }
   }
 }

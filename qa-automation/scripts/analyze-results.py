@@ -9,13 +9,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports" / "output"
-PUBLIC_QA = ROOT.parent / "public" / "qa"
+PUBLIC_QA = ROOT.parent / "frontend" / "public" / "qa"
 
 PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
 
 def load_summary() -> dict | None:
-    for path in (REPORTS / "summary.json", PUBLIC_QA / "summary.json"):
+    frontend_qa = ROOT.parent / "frontend" / "public" / "qa" / "summary.json"
+    for path in (REPORTS / "summary.json", frontend_qa):
         if path.exists():
             return json.loads(path.read_text())
     return None
