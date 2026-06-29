@@ -12,6 +12,8 @@ if [ -f .venv/bin/activate ]; then
 elif [ -f venv/bin/activate ]; then
   # shellcheck source=/dev/null
   source venv/bin/activate
+elif command -v pytest >/dev/null 2>&1; then
+  echo "Using system pytest (no virtualenv)"
 else
   echo "No virtualenv in backend/. Run: cd backend && python -m venv .venv && pip install -r requirements.txt"
   exit 1

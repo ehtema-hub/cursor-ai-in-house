@@ -105,12 +105,9 @@ jobs:
         with:
           working-directory: frontend
       - name: Snyk test (npm)
-        uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          args: --severity-threshold=high
+        run: bash scripts/ci/run-snyk.sh npm --severity-threshold=high
 
   security-snyk-python:
     name: Security — Snyk (python)
@@ -123,18 +120,11 @@ jobs:
       )
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
+      - uses: ./.github/actions/setup-python-deps
       - name: Snyk test (python)
-        uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          args: --file=backend/requirements.txt --severity-threshold=high
+        run: bash scripts/ci/run-snyk.sh python --file=backend/requirements.txt --severity-threshold=high
 
   security-python:
     name: Security — pip-audit
@@ -197,10 +187,16 @@ jobs:
             context: frontend
             file: frontend/Dockerfile
             tag: cursor-frontend:ci
+            port: 8080
+            container_port: 80
+            health_path: /health
           - name: backend
             context: backend
             file: backend/Dockerfile
             tag: cursor-backend:ci
+            port: 5000
+            container_port: 5000
+            health_path: /health
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v3
@@ -214,32 +210,21 @@ jobs:
           tags: ${{ matrix.tag }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
-
-  docker-smoke:
-    name: Docker — Health smoke (${{ matrix.name }})
-    runs-on: ubuntu-latest
-    needs: docker-build
-    if: needs.docker-build.result == 'success'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: frontend
-            image: cursor-frontend:ci
-            port: 8080
-            health_path: /health
-          - name: backend
-            image: cursor-backend:ci
-            port: 5000
-            health_path: /health
-    steps:
-      - name: Run container health check
+      - name: Health smoke (${{ matrix.name }})
         run: |
-          docker run -d --name smoke-${{ matrix.name }} \
-            -e FLASK_ENV=testing \
-            -e JWT_SECRET_KEY=ci-docker-smoke-secret-32chars!! \
-            -p ${{ matrix.port }}:${{ matrix.port == 8080 && 80 || 5000 }} \
-            ${{ matrix.image }}
+          if [ "${{ matrix.name }}" = "backend" ]; then
+            docker run -d --name smoke-${{ matrix.name }} \
+              -e FLASK_ENV=production \
+              -e DATABASE_URL=sqlite:////tmp/smoke.db \
+              -e JWT_SECRET_KEY=ci-docker-smoke-secret-32chars!! \
+              -e SECRET_KEY=ci-docker-smoke-secret-key!! \
+              -p ${{ matrix.port }}:${{ matrix.container_port }} \
+              ${{ matrix.tag }}
+          else
+            docker run -d --name smoke-${{ matrix.name }} \
+              -p ${{ matrix.port }}:${{ matrix.container_port }} \
+              ${{ matrix.tag }}
+          fi
           for i in $(seq 1 30); do
             code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${{ matrix.port }}${{ matrix.health_path }}" || echo "000")
             if [ "$code" = "200" ]; then
@@ -376,7 +361,26 @@ jobs:
         env:
           FLASK_ENV: testing
           JWT_SECRET_KEY: ci-test-jwt-secret-key-32chars!!
-        run: pytest -q ${{ matrix.paths }}
+        run: pytest -q --no-cov ${{ matrix.paths }}
+
+  backend-coverage:
+    name: Test — Backend coverage
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-python-deps
+      - name: Run full suite with coverage gate
+        env:
+          FLASK_ENV: testing
+          JWT_SECRET_KEY: ci-test-jwt-secret-key-32chars!!
+        run: pytest -q
 
   performance-test:
     name: Test — Performance
@@ -397,11 +401,19 @@ jobs:
           FLASK_ENV: testing
           JWT_SECRET_KEY: ci-test-jwt-secret-key-32chars!!
         run: |
-          gunicorn --bind 127.0.0.1:5000 --workers 2 --timeout 30 "run:app" &
+          gunicorn --bind 127.0.0.1:5000 --workers 1 --timeout 30 "run:app" &
+          ready=0
           for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:5000/health && break
+            if curl -sf http://127.0.0.1:5000/health; then
+              ready=1
+              break
+            fi
             sleep 1
           done
+          if [ "$ready" != "1" ]; then
+            echo "API server failed to start"
+            exit 1
+          fi
       - name: Run performance smoke test
         run: bash ../scripts/ci/performance-test.sh http://127.0.0.1:5000
 
@@ -419,11 +431,11 @@ jobs:
       - security-python
       - security-sast-bandit
       - docker-build
-      - docker-smoke
       - frontend-build
       - backend-build
       - frontend-test
       - backend-test
+      - backend-coverage
       - performance-test
     if: always()
     steps:
@@ -599,11 +611,11 @@ jobs:
       - security-python
       - security-sast-bandit
       - docker-build
-      - docker-smoke
       - frontend-build
       - backend-build
       - frontend-test
       - backend-test
+      - backend-coverage
       - performance-test
       - deploy-green
       - deploy-health-check

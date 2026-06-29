@@ -131,6 +131,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 GATE_EXIT=0
 python3 "$ROOT/qa-suite/reporting/generate-dashboard.py" || GATE_EXIT=1
+[ "$GATE_EXIT" -ne 0 ] && FAILED=1
 
 echo ""
 echo "══════════════════════════════════════════════════════════"
@@ -140,5 +141,7 @@ if [ "$FAILED" -eq 0 ] && [ "$GATE_EXIT" -eq 0 ]; then
   exit 0
 else
   echo " QA SUITE FAILED — Review $OUT/dashboard.html"
+  [ "$GATE_EXIT" -ne 0 ] && echo "  Reason: dashboard quality gate check failed"
+  [ "$FAILED" -ne 0 ] && [ "$GATE_EXIT" -eq 0 ] && echo "  Reason: one or more earlier phases failed (see log above)"
   exit 1
 fi

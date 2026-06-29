@@ -63,6 +63,8 @@ class TestingConfig(Config):
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
     CACHE_USE_REDIS_IN_TESTS = False
+    RATE_LIMIT_MAX_REQUESTS = 100_000
+    RATE_LIMIT_WINDOW_SECONDS = 60
 
 
 class ProductionConfig(Config):

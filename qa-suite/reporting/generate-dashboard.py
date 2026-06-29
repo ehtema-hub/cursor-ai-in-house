@@ -24,6 +24,13 @@ def read_json(path: Path, default: dict | None = None) -> dict:
         return default or {}
 
 
+def to_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def gate(name: str, passed: bool, detail: str, metrics: dict | None = None) -> dict:
     return {
         "name": name,
@@ -47,7 +54,7 @@ def evaluate_gates() -> tuple[list[dict], bool]:
     lint_ok = (
         eslint.get("errors", 0) == 0
         and eslint.get("complexityViolations", 0) == 0
-        and pylint.get("score", 0) >= THRESHOLDS["lint"]["minPylintScore"]
+        and to_float(pylint.get("score", 0)) >= THRESHOLDS["lint"]["minPylintScore"]
         and complexity.get("passed", True)
     )
     gates.append(gate(
@@ -58,8 +65,12 @@ def evaluate_gates() -> tuple[list[dict], bool]:
     ))
 
     cov_min = THRESHOLDS["coverage"]["minimumPercent"]
-    cov_pct = coverage.get("coveragePercent", 0)
-    cov_ok = coverage.get("passed", cov_pct >= cov_min)
+    cov_pct = to_float(coverage.get("coveragePercent", 0))
+    cov_passed = coverage.get("passed")
+    if isinstance(cov_passed, bool):
+        cov_ok = cov_passed
+    else:
+        cov_ok = cov_pct >= cov_min
     gates.append(gate(
         "Code Coverage",
         cov_ok,
@@ -194,7 +205,7 @@ def build_frontend_summary(gates: list[dict]) -> dict:
     jest_passed = jest.get("numPassedTests", 0) if jest else 0
     jest_failed = jest.get("numFailedTests", 0) if jest else 0
     jest_total = jest.get("numTotalTests", 0) if jest else 0
-    cov_pct = coverage.get("coveragePercent", 0)
+    cov_pct = to_float(coverage.get("coveragePercent", 0))
 
     if jest_total > 0:
         jest_status = "pass" if jest_failed == 0 else "fail"
@@ -211,7 +222,7 @@ def build_frontend_summary(gates: list[dict]) -> dict:
     else:
         ui_status = "unknown"
 
-    backend_cov = (
+    backend_cov = to_float(
         pytest_integration.get("coveragePercent")
         or pytest_unit.get("coveragePercent")
         or 0

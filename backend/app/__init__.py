@@ -8,6 +8,7 @@ from app.config import config_by_name
 from app.extensions import api, db, jwt, ma, migrate
 from app.services.cache import cache
 from app.utils.errors import register_error_handlers
+from sqlalchemy.exc import OperationalError
 
 
 def create_app(config_name: str = "development") -> Flask:
@@ -32,7 +33,12 @@ def create_app(config_name: str = "development") -> Flask:
 
     if config_name == "testing":
         with flask_app.app_context():
-            db.create_all()
+            try:
+                db.create_all()
+            except OperationalError as exc:
+                # Gunicorn multi-worker boots can race on shared in-memory SQLite.
+                if "already exists" not in str(exc).lower():
+                    raise
 
     @flask_app.route("/api/test/reset", methods=["POST"])
     def reset_test_database():

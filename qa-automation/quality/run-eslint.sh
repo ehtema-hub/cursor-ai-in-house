@@ -8,10 +8,13 @@ cd "$ROOT"
 mkdir -p "$OUT"
 
 set +e
-npx eslint frontend/src \
-  -c "$ROOT/qa-automation/quality/eslint.config.js" \
-  -f json \
-  -o "$OUT/eslint.json"
+(
+  cd "$ROOT/frontend"
+  npx eslint src \
+    -c "$ROOT/qa-automation/quality/eslint.config.js" \
+    -f json \
+    -o "$OUT/eslint.json"
+)
 set -e
 
 node -e "
