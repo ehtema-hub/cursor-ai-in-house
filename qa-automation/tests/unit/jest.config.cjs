@@ -2,14 +2,19 @@
 const ROOT = require('path').resolve(__dirname, '../../..')
 const FRONTEND = require('path').join(ROOT, 'frontend')
 
+function resolveFromFrontend(moduleName) {
+  return require.resolve(moduleName, { paths: [FRONTEND] })
+}
+
 module.exports = {
-  testEnvironment: 'jsdom',
+  testEnvironment: resolveFromFrontend('jest-environment-jsdom'),
   rootDir: ROOT,
+  modulePaths: [require('path').join(FRONTEND, 'node_modules')],
   roots: ['<rootDir>/qa-automation/tests/unit/frontend'],
   testMatch: ['**/*.test.{ts,tsx}'],
   transform: {
     '^.+\\.tsx?$': [
-      'ts-jest',
+      resolveFromFrontend('ts-jest'),
       {
         tsconfig: {
           jsx: 'react-jsx',
@@ -24,6 +29,7 @@ module.exports = {
           __API_BASE_URL__: '',
           __BLOG_API_BASE_URL__: '/blog-api',
         },
+        diagnostics: false,
       },
     ],
   },

@@ -7,8 +7,7 @@ cd "$ROOT"
 
 mkdir -p qa-automation/reports/output/tests qa-automation/reports/output/coverage/frontend
 
-npx jest \
-  --config qa-automation/tests/unit/jest.config.cjs \
-  --coverage \
+cd "$ROOT/frontend"
+npm run test:unit -- \
   --json \
-  --outputFile=qa-automation/reports/output/tests/jest-results.json
+  --outputFile=../qa-automation/reports/output/tests/jest-results.json

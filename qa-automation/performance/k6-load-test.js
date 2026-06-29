@@ -25,7 +25,7 @@ export default function () {
     'health body ok': (r) => r.body && r.body.includes('ok'),
   })
 
-  const products = http.get(`${BASE_URL}/api/products`)
+  const products = http.get(`${BASE_URL}/api/products/`)
   check(products, {
     'products status 200': (r) => r.status === 200,
   })

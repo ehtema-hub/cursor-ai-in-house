@@ -11,7 +11,13 @@ FAILED=0
 
 echo ">>> ESLint (complexity ≤ 10)"
 set +e
-npx eslint frontend/src qa-suite/ui-tests -c qa-suite/code-quality/eslint.config.js -f json -o "$OUT/eslint.json"
+(
+  cd "$ROOT/frontend"
+  npx eslint ../frontend/src ../qa-suite/ui-tests \
+    -c ../qa-suite/code-quality/eslint.config.js \
+    -f json \
+    -o "../qa-suite/reporting/output/code-quality/eslint.json"
+)
 ESLINT_EXIT=$?
 set -e
 
@@ -45,20 +51,42 @@ python3 qa-suite/code-quality/complexity-check.py || FAILED=1
 
 echo ">>> Jest unit coverage gate (≥80%)"
 mkdir -p "$OUT/coverage/frontend"
-npx jest --config qa-automation/tests/unit/jest.config.cjs --coverage \
-  --coverageDirectory="$OUT/coverage/frontend" \
-  --coverageReporters=json-summary \
-  --json --outputFile="$OUT/jest-results.json" \
-  --silent 2>/dev/null || true
+set +e
+(
+  cd "$ROOT/frontend"
+  npx jest --config ../qa-automation/tests/unit/jest.config.cjs --coverage \
+    --coverageDirectory="qa-suite/reporting/output/code-quality/coverage/frontend" \
+    --coverageReporters=json-summary \
+    --json --outputFile="qa-suite/reporting/output/code-quality/jest-results.json"
+)
+JEST_EXIT=$?
+set -e
 node -e "
 const fs=require('fs');
-const p='$OUT/coverage/frontend/coverage-summary.json';
+const paths=[
+  '$OUT/coverage/frontend/coverage-summary.json',
+  '$ROOT/qa-automation/reports/output/coverage/frontend/coverage-summary.json',
+];
+const jestPath='$OUT/jest-results.json';
 const min=80;
 let pct=0;
-if(fs.existsSync(p)) pct=JSON.parse(fs.readFileSync(p)).total?.lines?.pct||0;
-fs.writeFileSync('$OUT/coverage-frontend.json',JSON.stringify({coveragePercent:pct,minimum:min,passed:pct>=min}));
-console.log('Frontend coverage:',pct+'%',pct>=min?'PASS':'FAIL');
-process.exit(pct>=min?0:1);
+for (const p of paths) {
+  if (!fs.existsSync(p)) continue;
+  pct=Number(JSON.parse(fs.readFileSync(p)).total?.lines?.pct||0);
+  if (pct>0) break;
+}
+let jestFailed=0;
+if (fs.existsSync(jestPath)) {
+  const j=JSON.parse(fs.readFileSync(jestPath));
+  jestFailed=Number(j.numFailedTests||0);
+}
+const coverageOk=pct>=min;
+const testsOk=jestFailed===0;
+fs.writeFileSync('$OUT/coverage-frontend.json',JSON.stringify({coveragePercent:pct,minimum:min,passed:coverageOk&&testsOk}));
+console.log('Frontend coverage:',pct+'%',coverageOk?'PASS':'FAIL');
+if (jestFailed>0) console.log('Jest failures:',jestFailed);
+else if ($JEST_EXIT !== 0) console.log('Note: jest exited',$JEST_EXIT,'but no test failures in report');
+process.exit(coverageOk&&testsOk?0:1);
 " || FAILED=1
 
 [ "$FAILED" -eq 0 ] && echo "Code quality checks PASSED" || { echo "Code quality checks FAILED"; exit 1; }

@@ -13,6 +13,15 @@ if [ -z "${SNYK_TOKEN:-}" ]; then
   exit 0
 fi
 
+http_code="$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: token ${SNYK_TOKEN}" \
+  https://api.snyk.io/v1/user/me || echo "000")"
+if [ "$http_code" != "200" ]; then
+  echo "SNYK_TOKEN invalid or unauthorized (HTTP ${http_code}) — skipping Snyk"
+  echo '{"critical":0,"high":0,"medium":0,"low":0,"skipped":true}' > "$OUT/snyk-summary.json"
+  exit 0
+fi
+
 CRITICAL=0 HIGH=0 MEDIUM=0 LOW=0
 
 echo ">>> Snyk npm"

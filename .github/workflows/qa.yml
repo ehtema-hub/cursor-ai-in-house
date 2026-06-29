@@ -30,15 +30,11 @@ jobs:
   test-jest:
     name: Test — Jest
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
-      - run: npm install jest ts-jest @types/jest jest-environment-jsdom @testing-library/jest-dom --no-save
       - run: bash qa-automation/tests/unit/frontend/run-unit.sh
       - uses: actions/upload-artifact@v4
         with:
@@ -76,9 +72,12 @@ jobs:
         with:
           working-directory: frontend
       - run: |
-          npx eslint frontend/src -c qa-automation/quality/eslint.config.js -f json \
-            -o qa-automation/reports/output/lint/eslint.json || true
           mkdir -p qa-automation/reports/output/lint
+          (
+            cd frontend
+            npx eslint src -c ../qa-automation/quality/eslint.config.js -f json \
+              -o ../qa-automation/reports/output/lint/eslint.json
+          ) || true
           node -e "
           const fs=require('fs');
           const p='qa-automation/reports/output/lint/eslint.json';
@@ -128,13 +127,11 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
         with:
           working-directory: frontend
+      - run: mkdir -p qa-automation/reports/output/security
       - name: Snyk test (npm)
-        uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          args: --severity-threshold=high --json-file-output=qa-automation/reports/output/security/snyk-npm.json
+        run: bash scripts/ci/run-snyk.sh npm --severity-threshold=high --json-file-output=../qa-automation/reports/output/security/snyk-npm.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -149,13 +146,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python-deps
+      - run: mkdir -p qa-automation/reports/output/security
       - name: Snyk test (python)
-        uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          args: --file=backend/requirements.txt --severity-threshold=high --json-file-output=qa-automation/reports/output/security/snyk-python.json
+        run: bash scripts/ci/run-snyk.sh python --file=backend/requirements.txt --severity-threshold=high --json-file-output=qa-automation/reports/output/security/snyk-python.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -178,9 +173,23 @@ jobs:
       - run: npm run build
       - name: Start backend API
         working-directory: backend
+        env:
+          FLASK_ENV: testing
+          JWT_SECRET_KEY: ${{ env.JWT_SECRET_KEY }}
         run: |
-          gunicorn --bind 127.0.0.1:5000 --workers 2 "run:app" &
-          for i in $(seq 1 30); do curl -sf http://127.0.0.1:5000/health && break; sleep 1; done
+          gunicorn --bind 127.0.0.1:5000 --workers 1 --timeout 30 "run:app" &
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:5000/health; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != "1" ]; then
+            echo "API server failed to start"
+            exit 1
+          fi
       - name: Start frontend preview
         run: |
           npm run preview -- --port 4173 --host &
@@ -229,9 +238,23 @@ jobs:
       - uses: grafana/setup-k6-action@v1
       - name: Start API
         working-directory: backend
+        env:
+          FLASK_ENV: testing
+          JWT_SECRET_KEY: ${{ env.JWT_SECRET_KEY }}
         run: |
-          gunicorn --bind 127.0.0.1:5000 --workers 2 "run:app" &
-          for i in $(seq 1 30); do curl -sf http://127.0.0.1:5000/health && break; sleep 1; done
+          gunicorn --bind 127.0.0.1:5000 --workers 1 --timeout 30 "run:app" &
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:5000/health; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != "1" ]; then
+            echo "API server failed to start"
+            exit 1
+          fi
       - run: |
           mkdir -p qa-automation/reports/output/performance
           k6 run -e BASE_URL=http://127.0.0.1:5000 -e K6_P95_MS=500 \
