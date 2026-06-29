@@ -103,7 +103,15 @@ The ShopVerse frontend (`../frontend/`) consumes this API for the **Blog** secti
 - Separate JWT (`blog_access_token` in `localStorage`) — synced from main app login when possible
 - Read posts/categories publicly; create posts/comments require blog auth
 
-Start this service alongside the [backend](../backend/README.md) and [frontend](../frontend/README.md) for the full blog experience. Seed categories before first use: `flask seed`.
+Start this service alongside the [backend](../backend/README.md) and [frontend](../frontend/README.md) for the full blog experience.
+
+```bash
+flask seed   # categories + demo authors, posts, and comments
+```
+
+Demo authors (password `DemoPass123!`): `mayachen`, `alexrivera`, `samortiz`, `priyanair`, `jordanlee` — posts span Programming, Technology, Travel, Food, and Lifestyle topics.
+
+To re-seed posts, clear the blog database first (delete `instance/blog.db` in dev) then run `flask seed` again.
 
 ## Example Usage
 

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>QA Quality Dashboard</title>
+  <style>
+    :root { --bg:#0b1220; --card:#151f32; --text:#e8eef9; --muted:#8ba3c7; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,system-ui,sans-serif; background:var(--bg); color:var(--text); padding:2rem; }
+    h1 { font-size:1.8rem; margin-bottom:.25rem; }
+    .sub { color:var(--muted); margin-bottom:2rem; }
+    .overall { display:inline-block; padding:.4rem 1rem; border-radius:999px; font-weight:700; margin-bottom:2rem; }
+    .overall.pass { background:#14532d; color:#4ade80; }
+    .overall.fail { background:#450a0a; color:#f87171; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem; }
+    .card { background:var(--card); border:1px solid #243552; border-radius:12px; padding:1.25rem; }
+    .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
+    .card h3 { font-size:1rem; }
+    .badge { font-size:.7rem; font-weight:700; padding:.2rem .6rem; border-radius:999px; }
+    .badge.pass { background:#14532d; color:#4ade80; }
+    .badge.fail { background:#450a0a; color:#f87171; }
+    .bar-track { height:8px; background:#1e2d47; border-radius:4px; overflow:hidden; margin-bottom:.75rem; }
+    .bar-fill { height:100%; border-radius:4px; transition:width .3s; }
+    .detail { color:var(--muted); font-size:.875rem; line-height:1.5; }
+    .trends { margin-top:2rem; }
+    .trends h2 { margin-bottom:1rem; font-size:1.2rem; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { text-align:left; padding:.6rem; border-bottom:1px solid #243552; font-size:.875rem; }
+    th { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <h1>QA Quality Dashboard</h1>
+  <p class="sub">Unified DevSecOps report — 2026-06-29 11:41 UTC</p>
+  <div class="overall pass">PASS</div>
+  <div class="grid">
+        <div class="card">
+          <div class="card-head">
+            <h3>Linting & Complexity</h3>
+            <span class="badge pass">PASS</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:#22c55e"></div></div>
+          <p class="detail">ESLint 0 errors, 0 CC violations; Pylint 8.47/10</p>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Code Coverage</h3>
+            <span class="badge pass">PASS</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:#22c55e"></div></div>
+          <p class="detail">Frontend coverage 85.2% (minimum 80%)</p>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Security (0 Critical)</h3>
+            <span class="badge pass">PASS</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:#22c55e"></div></div>
+          <p class="detail">Snyk critical=0, ZAP critical=0</p>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>UI / E2E Tests</h3>
+            <span class="badge pass">PASS</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:#22c55e"></div></div>
+          <p class="detail">8/8 passed (100%)</p>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Performance (k6)</h3>
+            <span class="badge pass">PASS</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:#22c55e"></div></div>
+          <p class="detail">avg 3ms, error rate 0.00%</p>
+        </div></div>
+  <section class="trends">
+    <h2>Quality Gate Summary</h2>
+    <table>
+      <tr><th>Gate</th><th>Status</th><th>Detail</th></tr>
+      <tr><td>Linting & Complexity</td><td>PASS</td><td>ESLint 0 errors, 0 CC violations; Pylint 8.47/10</td></tr><tr><td>Code Coverage</td><td>PASS</td><td>Frontend coverage 85.2% (minimum 80%)</td></tr><tr><td>Security (0 Critical)</td><td>PASS</td><td>Snyk critical=0, ZAP critical=0</td></tr><tr><td>UI / E2E Tests</td><td>PASS</td><td>8/8 passed (100%)</td></tr><tr><td>Performance (k6)</td><td>PASS</td><td>avg 3ms, error rate 0.00%</td></tr>
+    </table>
+  </section>
+</body>
+</html>

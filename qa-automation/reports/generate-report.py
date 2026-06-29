@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports" / "output"
-PUBLIC_QA = ROOT.parent / "public" / "qa"
+PUBLIC_QA = ROOT.parent / "frontend" / "public" / "qa"
 
 
 def read_json(path: Path, default=None):
@@ -113,6 +113,15 @@ def main() -> int:
         "performance": perf_summary(),
         "security": security_summary(),
     }
+
+    ui = read_json(ROOT.parent / "qa-suite/reporting/output/ui-tests/summary.json")
+    if ui and ui.get("total", 0) > 0:
+        gates["ui_e2e"] = {
+            "status": "pass" if ui.get("failed", 1) == 0 else "fail",
+            "passed": ui.get("passed", 0),
+            "failed": ui.get("failed", 0),
+            "total": ui.get("total", 0),
+        }
     statuses = [g["status"] for g in gates.values()]
     if "fail" in statuses:
         overall = "fail"
@@ -129,8 +138,57 @@ def main() -> int:
         "branch": os.environ.get("GITHUB_REF_NAME", "local"),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "overallStatus": overall,
+        "source": "qa-automation",
         "gates": gates,
     }
+
+    quality_gates = []
+    if gates["unit_frontend"].get("total", 0) > 0:
+        j = gates["unit_frontend"]
+        quality_gates.append({
+            "name": "Frontend Unit (Jest)",
+            "status": j["status"],
+            "detail": f"{j['passed']}/{j['total']} passed · {j['coverage']}% coverage",
+            "passed": j["status"] == "pass",
+        })
+    if gates.get("ui_e2e", {}).get("total", 0) > 0:
+        u = gates["ui_e2e"]
+        quality_gates.append({
+            "name": "UI / E2E Tests",
+            "status": u["status"],
+            "detail": f"{u['passed']}/{u['total']} passed",
+            "passed": u["status"] == "pass",
+        })
+    quality_gates.extend([
+        {
+            "name": "Code Quality",
+            "status": gates["lint"]["status"],
+            "detail": (
+                f"ESLint {gates['lint']['eslintErrors']}E · "
+                f"Pylint {gates['lint']['pylintScore']}/10"
+            ),
+            "passed": gates["lint"]["status"] == "pass",
+        },
+        {
+            "name": "Performance",
+            "status": gates["performance"]["status"],
+            "detail": (
+                f"Lighthouse {gates['performance']['lighthousePerformance']}/100 · "
+                f"k6 p95 {gates['performance'].get('k6P95Ms') or 'n/a'}ms"
+            ),
+            "passed": gates["performance"]["status"] == "pass",
+        },
+        {
+            "name": "Security",
+            "status": gates["security"]["status"],
+            "detail": (
+                f"ZAP high {gates['security']['zapHigh']} · "
+                f"Snyk high {gates['security']['snykHigh']}"
+            ),
+            "passed": gates["security"]["status"] == "pass",
+        },
+    ])
+    summary["qualityGates"] = quality_gates
 
     REPORTS.mkdir(parents=True, exist_ok=True)
     PUBLIC_QA.mkdir(parents=True, exist_ok=True)

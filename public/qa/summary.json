@@ -1,0 +1,54 @@
+{
+  "runId": "local",
+  "commit": "local",
+  "branch": "local",
+  "timestamp": "2026-06-26T11:51:51.039295+00:00",
+  "overallStatus": "warn",
+  "gates": {
+    "unit_frontend": {
+      "status": "pass",
+      "passed": 58,
+      "coverage": 85.2,
+      "failed": 0,
+      "total": 58
+    },
+    "unit_backend": {
+      "status": "warn",
+      "passed": false,
+      "coverage": 79.1,
+      "unit": {
+        "suite": "unit",
+        "coveragePercent": 77.8
+      },
+      "integration": {
+        "suite": "integration",
+        "coveragePercent": 79.1
+      }
+    },
+    "lint": {
+      "status": "pass",
+      "passed": true,
+      "eslintErrors": 0,
+      "eslintWarnings": 6,
+      "pylintScore": 9.71,
+      "pylintIssues": 0
+    },
+    "performance": {
+      "status": "pass",
+      "passed": true,
+      "lighthousePerformance": 98,
+      "lighthouseAccessibility": 100,
+      "k6P95Ms": 5.144849999999999,
+      "k6FailedRate": 0
+    },
+    "security": {
+      "status": "pass",
+      "passed": true,
+      "zapHigh": 0,
+      "zapMedium": 0,
+      "zapLow": 0,
+      "snykHigh": 0,
+      "snykMedium": 0
+    }
+  }
+}

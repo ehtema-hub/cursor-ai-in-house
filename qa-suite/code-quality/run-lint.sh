@@ -47,7 +47,9 @@ echo ">>> Jest unit coverage gate (≥80%)"
 mkdir -p "$OUT/coverage/frontend"
 npx jest --config qa-automation/tests/unit/jest.config.cjs --coverage \
   --coverageDirectory="$OUT/coverage/frontend" \
-  --coverageReporters=json-summary --silent 2>/dev/null || true
+  --coverageReporters=json-summary \
+  --json --outputFile="$OUT/jest-results.json" \
+  --silent 2>/dev/null || true
 node -e "
 const fs=require('fs');
 const p='$OUT/coverage/frontend/coverage-summary.json';
