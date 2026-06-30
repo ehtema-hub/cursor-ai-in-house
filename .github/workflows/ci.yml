@@ -464,7 +464,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [ci-gate]
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-snapshot
         continue-on-error: true
@@ -488,11 +488,11 @@ jobs:
       page_url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: dist/
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: backend-app
           path: backend/
@@ -534,7 +534,7 @@ jobs:
         env:
           DEPLOY_URL: ${{ needs.deploy-green.outputs.page_url }}
         run: bash scripts/ci/deploy-health-check.sh
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: dist/
@@ -563,12 +563,12 @@ jobs:
       name: production-rollback
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: rollback-snapshot
           path: rollback/
         continue-on-error: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: production-snapshot
           path: rollback/
