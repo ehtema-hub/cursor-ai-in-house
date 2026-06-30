@@ -93,7 +93,6 @@ bash qa-suite/performance/run-k6.sh
 # Regenerate dashboard from existing reports
 python3 qa-suite/reporting/generate-dashboard.py
 ```
-
 ### Root npm shortcuts
 
 | Command | Description |
